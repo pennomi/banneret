@@ -1,0 +1,1 @@
+-e hg+https://pyglet.googlecode.com/hg/#egg=pyglet
