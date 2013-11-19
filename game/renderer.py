@@ -39,16 +39,15 @@ def gl_setup():
     #       would be handy.
     # The RGBA screen-clearing color. Defaults to black.
     #gl.glClearColor(0.5, 0.5, 0.5, 1)
-
-    #gl.glColor3f(1, 0, 0)
+    #gl.glColor3f(1, 0, 0)  # This tints EVERYTHING
     gl.glEnable(gl.GL_DEPTH_TEST)
     gl.glEnable(gl.GL_CULL_FACE)
 
     # Wireframe draw mode
     #gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
 
-    ## Simple light setup
-    #gl.glEnable(gl.GL_LIGHTING) # enable lighting
+    # Simple light setup
+    gl.glEnable(gl.GL_LIGHTING)
 
     # Define a simple function to create ctypes arrays of floats:
     def vec(*args):
@@ -58,11 +57,11 @@ def gl_setup():
     #gl.glLightfv(gl.GL_LIGHT0, gl.GL_SPECULAR, vec(0, 0, 1, 1))
     #gl.glLightfv(gl.GL_LIGHT0, gl.GL_DIFFUSE, vec(1, 0.5, 0, 1))
     #gl.glLightfv(gl.GL_LIGHT0, gl.GL_AMBIENT, vec(0, 1, 0, 1))
-    #gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, vec(0, 2, 0, 1))
+    gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, vec(0, 5, 10, 1))
 
     #gl.glLightf(gl.GL_LIGHT0, gl.GL_CONSTANT_ATTENUATION, 1.0) # default is 1.0
     #gl.glLightf(gl.GL_LIGHT0, gl.GL_LINEAR_ATTENUATION, 0.1)
-    gl.glLightf(gl.GL_LIGHT0, gl.GL_QUADRATIC_ATTENUATION, 0.1)
+    #gl.glLightf(gl.GL_LIGHT0, gl.GL_QUADRATIC_ATTENUATION, 0.1)
 
     #gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT_AND_DIFFUSE,
     #                vec(1.0, 1.0, 1.0, 1))
@@ -70,7 +69,6 @@ def gl_setup():
     #                vec(1.0, 1.0, 1.0, 1))
     #gl.glMaterialf(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, 90)
 
-    # enable texturing
     gl.glEnable(gl.GL_TEXTURE_2D)
 
 
@@ -117,11 +115,34 @@ class Model(object):
         self.vertex_lists = _load_model(data_path)  # models embed textures
         self.position = position
 
-    def draw(self):
+    def draw(self, scale=1):
+        gl.glPushMatrix()
+        gl.glTranslatef(*self.position)
+        gl.glRotatef(self.angle, 0, 0, 1)
+        gl.glScalef(scale, scale, scale)
         for texture, vlist in self.vertex_lists.items():
             gl.glBindTexture(gl.GL_TEXTURE_2D, texture.id)
-            gl.glPushMatrix()
-            gl.glTranslatef(*self.position)
-            gl.glRotatef(self.angle, 0, 0, 1)
             vlist.draw(gl.GL_TRIANGLES)
-            gl.glPopMatrix()
+        gl.glPopMatrix()
+
+
+###############################################################################
+# Simple draw_rect for easy use
+###############################################################################
+def draw_rect(center, w, h, color):
+    gl.glDisable(gl.GL_TEXTURE_2D)
+    gl.glDisable(gl.GL_LIGHTING)
+    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+    gl.glEnable(gl.GL_BLEND)
+    gl.glColor4f(*color)
+    points = ('v3f', (
+        center.x + w/2., center.y - h/2., center.z,
+        center.x + w/2., center.y + h/2., center.z,
+        center.x - w/2., center.y + h/2., center.z,
+        center.x - w/2., center.y - h/2., center.z,
+    ))
+    v = pyglet.graphics.vertex_list(len(points[1]) / 3, points)
+    v.draw(gl.GL_QUADS)
+    gl.glEnable(gl.GL_LIGHTING)
+    gl.glEnable(gl.GL_TEXTURE_2D)
+
