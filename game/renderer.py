@@ -1,4 +1,5 @@
 import pickle
+from random import choice
 import pyglet
 from pyglet import gl
 from game.utils import Vector3
@@ -10,7 +11,7 @@ config = gl.Config(
     double_buffer=True,  # Render and swap
 )
 WINDOW = pyglet.window.Window(resizable=True, config=config)
-
+SIZE = [0, 0]
 
 ###############################################################################
 # Pyglet Window subclass
@@ -25,6 +26,8 @@ def configure_gl_viewport(width, height):
     """Set the viewport up to use OpenGL. This must be called every time there
     is a change in window size.
     """
+    SIZE[0], SIZE[1] = width, height
+
     gl.glViewport(0, 0, width, height)
     gl.glMatrixMode(gl.GL_PROJECTION)
     gl.glLoadIdentity()
@@ -108,6 +111,7 @@ class Model(object):
     position = None
     vertex_lists = None
     angle = 0
+    pick_color = None  # for picking
 
     def __init__(self, data_path, position=None):
         if position is None:
@@ -125,9 +129,27 @@ class Model(object):
             vlist.draw(gl.GL_TRIANGLES)
         gl.glPopMatrix()
 
+    def draw_for_picker(self, color, scale=1):
+        # disable stuff
+        gl.glDisable(gl.GL_TEXTURE_2D)
+        gl.glDisable(gl.GL_LIGHTING)
+        gl.glColor3f(*color)
+        gl.glPushMatrix()
+        gl.glTranslatef(*self.position)
+        gl.glRotatef(self.angle, 0, 0, 1)
+        gl.glScalef(scale, scale, scale)
+        for texture, vlist in self.vertex_lists.items():
+            #gl.glBindTexture(gl.GL_TEXTURE_2D, texture.id)
+            vlist.draw(gl.GL_TRIANGLES)
+        gl.glPopMatrix()
+        # re-enable stuff
+        gl.glEnable(gl.GL_LIGHTING)
+        gl.glEnable(gl.GL_TEXTURE_2D)
+
+
 
 ###############################################################################
-# Simple draw_rect for easy use
+# Simple primitives for easy use
 ###############################################################################
 def draw_rect(center, w, h, color):
     gl.glDisable(gl.GL_TEXTURE_2D)
@@ -146,3 +168,53 @@ def draw_rect(center, w, h, color):
     gl.glEnable(gl.GL_LIGHTING)
     gl.glEnable(gl.GL_TEXTURE_2D)
 
+
+def draw_line(first, last, color=None):
+    gl.glDisable(gl.GL_TEXTURE_2D)
+    gl.glDisable(gl.GL_LIGHTING)
+    #gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+    #gl.glEnable(gl.GL_BLEND)
+    if not color:
+        gl.glColor4f(1, 0, 0, 1)
+    else:
+        gl.glColor4f(*color)
+    gl.glBegin(gl.GL_LINES)
+    gl.glVertex3f(first.x, first.y, first.z)
+    gl.glVertex3f(last.x, last.y, last.z)
+    gl.glEnd()
+    gl.glEnable(gl.GL_LIGHTING)
+    gl.glEnable(gl.GL_TEXTURE_2D)
+
+
+FOVY = 60
+NEAR = 1  # 10.
+
+
+def intersection_for_point(x, y, looking_at, cam):
+    import math
+    # calculate the ray form the camera
+    width, height = SIZE
+    up = Vector3(0, 0, 1)
+    view = looking_at - cam
+    h = view.cross(up).normalized()
+    # convert field of view to radians
+    fovy = FOVY
+    nearclippingplanedistance = NEAR
+    rad = fovy * math.pi / 180.
+    v_length = math.tan(rad / 2.) * nearclippingplanedistance
+    h_length = v_length * (width / height)
+    up *= v_length
+    h *= h_length
+    # map 2d coords to viewport
+    x -= width / 2.
+    y -= height / 2.
+    x /= width / 2.
+    y /= height / 2.
+    pos = cam + view*nearclippingplanedistance + h*x + up*y
+    direction = looking_at - cam
+    #direction = pos - cam
+
+    # calculate the intersection
+    if not direction.z:
+        return Vector3(0, 0, 0)
+    return pos + direction * -pos.z/direction.z  # should pos be self.cam?
