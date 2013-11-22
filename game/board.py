@@ -1,10 +1,9 @@
-from random import uniform
-import weakref
 import pyglet
 from pyglet.gl import gl
+from game.pieces import PieceList
 from game.utils import Vector3
-from game.renderer import Model, _load_texture, draw_highlight, color_at_point
-from math import copysign
+from game.renderer import Model, draw_highlight, color_at_point
+from collections import deque
 
 SURFACE_HEIGHT = 0.36
 WHITE_HIGHLIGHT = (1.0, 1.0, 1.0, .75)
@@ -19,87 +18,6 @@ class Player(object):
         self.name = name
 
 
-class Piece(object):
-    command_count = 0  # number of pieces this can command
-    speed = 0  # number of movement squares
-    rotation_angle = 360  # rotations must be a multiple of this number
-    rotation_offset = 0  # number of degress offset it starts at
-    # piece state
-    moved = False
-    rotated = False
-    direction = None
-    # rendering
-    _model = None
-    _texture_override = ""
-
-    def __init__(self, player, x, y):
-        self.player = player
-        # place the piece on the board
-        center = Vector3(x - 3.5, y - 3.5, 0)
-        # create and monkey patch the model
-        self._model = Model('square', position=center)
-        v = {_load_texture(self._texture_override): v
-             for v in self._model.vertex_lists.values()}
-        self._model.vertex_lists = v
-        # forward draw requests
-        self.draw = self._model.draw
-        self.draw_for_picker = self._model.draw_for_picker
-        # generate a color key
-        # TODO: always generate one that won't have rounding error
-        self.color_key = (uniform(0, 1), 0, 0)
-        self._color_key_processed = [int(round(_*255)) for _ in self.color_key]
-
-    @property
-    def direction(self):
-        v = Vector3(1, 0, 0)
-        v.angle_around_z = self._model.angle
-        return v
-    @direction.setter
-    def direction(self, v):
-        self._model.angle = v.angle_around_z
-
-    @property
-    def position(self):
-        return self._model.position
-    @position.setter
-    def position(self, val):
-        self._model.position = val
-
-    def move(self):
-        # Make the vector have all 1s, 0s, and -1s.
-        v = Vector3([round(_) for _ in self.direction])
-        self.position += v
-        self.moved = True
-
-    @property
-    def square_center(self):
-        x, y = self.position.x, self.position.y
-        return int(x) + copysign(.5, x), int(y) + copysign(.5, y)
-
-    def matches_color(self, color):
-        return self._color_key_processed == color
-
-
-class O1(Piece):
-    speed = 1
-    _texture_override = "O1.jpg"
-
-
-#class D1(Piece):
-#    speed = 1
-#    _texture_override = "D1.jpg"
-
-
-class PieceList(list):
-    def filter(self, player=None, moved=None):
-        sublist = self
-        if player is not None:
-            sublist = [_ for _ in sublist if _.player is player]
-        if moved is not None:
-            sublist = [_ for _ in sublist if _.moved == moved]
-        return PieceList(sublist)
-
-
 class Board(object):
     """The global gameboard. You shouldn't ever instantiate this;
     Instead, just use the provided global BOARD object, below.
@@ -109,14 +27,12 @@ class Board(object):
         # set up players
         player1 = Player('Thane')
         player2 = Player('Stacey')
-        self.players = [player1, player2]
+        self.players = deque([player1, player2])
         self.active_player = self.players[0]
 
         # set up pieces
-        self.pieces = PieceList([
-            O1(player1, 0, 0),
-            O1(player2, 7, 6),
-        ])
+        self.pieces = PieceList()
+        self.pieces.load_from_file('default', self.players)
         self.selected_piece = None
 
         # misc setup
@@ -136,6 +52,14 @@ class Board(object):
         if piece in my_pieces.filter(moved=False):
             piece.move()
             return
+        if not my_pieces.filter(moved=False):
+            self.pass_turn()
+
+    def pass_turn(self):
+        self.players.append(self.players.popleft())
+        self.active_player = self.players[0]
+        for piece in self.pieces:
+            piece.reset()
 
     def get_selected_piece(self):
         """Via a rendering pass, find if the cursor is over any of the

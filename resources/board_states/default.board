@@ -1,0 +1,13 @@
+[
+{ "class": "B0", "player": 0, "position": [0, 0] },
+{ "class": "O1", "player": 0, "position": [0, 1] },
+{ "class": "O1", "player": 0, "position": [0, 2] },
+{ "class": "O1", "player": 0, "position": [0, 3] },
+{ "class": "O1", "player": 0, "position": [0, 4] },
+
+{ "class": "B0", "player": 1, "position": [7, 7] },
+{ "class": "O1", "player": 1, "position": [7, 6] },
+{ "class": "O1", "player": 1, "position": [7, 5] },
+{ "class": "O1", "player": 1, "position": [7, 4] },
+{ "class": "O1", "player": 1, "position": [7, 3] }
+]
