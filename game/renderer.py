@@ -157,17 +157,18 @@ def color_at_point(x, y):
 ###############################################################################
 # Simple primitives for easy use
 ###############################################################################
-def draw_rect(center, w, h, color):
+def draw_highlight(xy, color):
+    center = Vector3(xy[0], xy[1], 0.01)
     gl.glDisable(gl.GL_TEXTURE_2D)
     gl.glDisable(gl.GL_LIGHTING)
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
     gl.glEnable(gl.GL_BLEND)
     gl.glColor4f(*color)
     points = ('v3f', (
-        center.x + w/2., center.y - h/2., center.z,
-        center.x + w/2., center.y + h/2., center.z,
-        center.x - w/2., center.y + h/2., center.z,
-        center.x - w/2., center.y - h/2., center.z,
+        center.x + .5, center.y - .5, center.z,
+        center.x + .5, center.y + .5, center.z,
+        center.x - .5, center.y + .5, center.z,
+        center.x - .5, center.y - .5, center.z,
     ))
     v = pyglet.graphics.vertex_list(len(points[1]) / 3, points)
     v.draw(gl.GL_QUADS)

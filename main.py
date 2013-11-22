@@ -44,7 +44,7 @@ def on_key_press(symbol, modifiers):
     # TODO: smooth scroll and up/down
     if symbol in [key.RIGHT, key.D]:
         BOARD.cam.rotate_around_z(10)
-    elif symbol in [key.UP, key.W]:
+    elif symbol in [key.LEFT, key.A]:
         BOARD.cam.rotate_around_z(-10)
 
 
