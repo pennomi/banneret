@@ -53,6 +53,11 @@ def on_mouse_motion(x, y, dx, dy):
     BOARD.mouse = x, y
 
 
+@WINDOW.event
+def on_mouse_press(x, y, button, modifiers):
+    if button in [pyglet.window.mouse.LEFT]:
+        BOARD.click()
+
 def main():
     renderer.gl_setup()
     pyglet.app.run()

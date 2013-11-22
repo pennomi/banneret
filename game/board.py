@@ -8,7 +8,8 @@ from math import copysign
 
 SURFACE_HEIGHT = 0.36
 WHITE_HIGHLIGHT = (1.0, 1.0, 1.0, .75)
-BLUE_HIGHLIGHT = (0.0, 1.0, 0.0, .75)
+BLUE_HIGHLIGHT = (0.0, 0.0, 0.8, .75)
+RED_HIGHLIGHT = (0.8, 0.0, 0.0, .75)
 
 
 class Player(object):
@@ -34,7 +35,6 @@ class Piece(object):
     def __init__(self, player, x, y):
         self.player = player
         # place the piece on the board
-        self.direction = Vector3(1, 0, 0)
         center = Vector3(x - 3.5, y - 3.5, 0)
         # create and monkey patch the model
         self._model = Model('square', position=center)
@@ -50,11 +50,26 @@ class Piece(object):
         self._color_key_processed = [int(round(_*255)) for _ in self.color_key]
 
     @property
+    def direction(self):
+        v = Vector3(1, 0, 0)
+        v.angle_around_z = self._model.angle
+        return v
+    @direction.setter
+    def direction(self, v):
+        self._model.angle = v.angle_around_z
+
+    @property
     def position(self):
         return self._model.position
     @position.setter
     def position(self, val):
         self._model.position = val
+
+    def move(self):
+        # Make the vector have all 1s, 0s, and -1s.
+        v = Vector3([round(_) for _ in self.direction])
+        self.position += v
+        self.moved = True
 
     @property
     def square_center(self):
@@ -78,9 +93,9 @@ class O1(Piece):
 class PieceList(list):
     def filter(self, player=None, moved=None):
         sublist = self
-        if player:
+        if player is not None:
             sublist = [_ for _ in sublist if _.player is player]
-        if moved:
+        if moved is not None:
             sublist = [_ for _ in sublist if _.moved == moved]
         return PieceList(sublist)
 
@@ -95,7 +110,7 @@ class Board(object):
         player1 = Player('Thane')
         player2 = Player('Stacey')
         self.players = [player1, player2]
-        self.current_player = self.players[0]
+        self.active_player = self.players[0]
 
         # set up pieces
         self.pieces = PieceList([
@@ -112,6 +127,15 @@ class Board(object):
 
     def update(self, dt):
         self.selected_piece = self.get_selected_piece()
+
+    def click(self):
+        piece = self.selected_piece
+        if not piece:
+            return
+        my_pieces = self.pieces.filter(player=self.active_player)
+        if piece in my_pieces.filter(moved=False):
+            piece.move()
+            return
 
     def get_selected_piece(self):
         """Via a rendering pass, find if the cursor is over any of the
@@ -137,7 +161,7 @@ class Board(object):
             piece.draw(scale=0.8)
 
         # highlight the squares under the right pieces
-        my_pieces = self.pieces.filter(player=self.current_player)
+        my_pieces = self.pieces.filter(player=self.active_player)
         if self.selected_piece and self.selected_piece in my_pieces:
             draw_highlight(self.selected_piece.square_center, WHITE_HIGHLIGHT)
 
