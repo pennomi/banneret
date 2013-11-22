@@ -1,10 +1,10 @@
-import math
 from random import uniform
 import weakref
 import pyglet
 from pyglet.gl import gl
 from game.utils import Vector3
-from game.renderer import Model, _load_texture, draw_rect, draw_line, SIZE, intersection_for_point
+from game.renderer import Model, _load_texture, draw_rect, color_at_point
+from math import copysign
 
 SURFACE_HEIGHT = 0.36
 
@@ -45,7 +45,17 @@ class Piece(object):
         # generate a color key
         # TODO: always generate one that won't have rounding error
         self.color_key = (uniform(0, 1), 0, 0)
-        self.pick_color = [int(round(_ * 255)) for _ in self.color_key]
+        self._color_key_processed = [int(round(_*255)) for _ in self.color_key]
+
+    @property
+    def position(self):
+        return self._model.position
+    @position.setter
+    def position(self, val):
+        self._model.position = val
+
+    def matches_color(self, color):
+        return self._color_key_processed == color
 
 
 class O1(Piece):
@@ -63,10 +73,9 @@ class Board(object):
     Instead, just use the provided global BOARD object, below.
     """
     mouse = None
-    #rays = []
-    highlight_position = None
 
     def __init__(self):
+        self.highlighted_positions = []
         player1 = Player('Thane')
         player2 = Player('Stacey')
         self.players = [player1, player2]
@@ -79,39 +88,38 @@ class Board(object):
         pyglet.clock.schedule_interval(self.update, 1 / 60.)
 
     def update(self, dt):
-        self.highlight_position = None
-        selected_piece = self.calculate_selected_piece()
+        self.highlighted_positions = []
+        # Operate on whatever the hovered piece is
+        selected_piece = self.get_selected_piece()
         if not selected_piece:
             return
-        self.highlight_square(selected_piece._model.position.x,
-                              selected_piece._model.position.y)
+        x, y = selected_piece.position.x, selected_piece.position.y
+        self.highlighted_positions.append(
+            Vector3(int(x) + copysign(.5, x), int(y) + copysign(.5, y), .01))
 
-    def highlight_square(self, x, y):
-        # TODO: Many squares need highlighted at once with different colors
-        self.highlight_position = Vector3(int(x)+.5, int(y)+.5, .01)
-
-    def calculate_selected_piece(self):
-        """Via a pre-rendering pass, """
+    def get_selected_piece(self):
+        """Via a rendering pass, find if the cursor is over any of the
+        active pieces.
+        """
+        # make a colored rendering pass
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         for piece in self.pieces:
             piece.draw_for_picker(color=piece.color_key, scale=0.8)
-        if self.mouse:
-            a = (gl.GLubyte * 3)(0)
-            gl.glReadPixels(self.mouse[0], self.mouse[1], 1, 1, gl.GL_RGB,
-                            gl.GL_UNSIGNED_BYTE, a)
-            selected_color = list(a)
-            for piece in self.pieces:
-                if piece.pick_color == selected_color:
-                    return piece
+        # check for a matching color among pieces
+        if not self.mouse:
+            return None
+        color = color_at_point(*self.mouse)
+        for piece in self.pieces:
+            if piece.matches_color(color):
+                return piece
+        return None
 
     def draw(self):
         for piece in self.pieces:
             piece.draw(scale=0.8)
         self._model.draw()
-        if self.highlight_position:
-            draw_rect(self.highlight_position, 1, 1, (1.0, 1.0, 1.0, .75))
-        #for ray in self.rays:
-        #    draw_line(*ray)
+        for p in self.highlighted_positions:
+            draw_rect(p, 1, 1, (1.0, 1.0, 1.0, .75))
 
 
 BOARD = Board()

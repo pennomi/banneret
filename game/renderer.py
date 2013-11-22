@@ -1,5 +1,4 @@
 import pickle
-from random import choice
 import pyglet
 from pyglet import gl
 from game.utils import Vector3
@@ -139,13 +138,20 @@ class Model(object):
         gl.glRotatef(self.angle, 0, 0, 1)
         gl.glScalef(scale, scale, scale)
         for texture, vlist in self.vertex_lists.items():
-            #gl.glBindTexture(gl.GL_TEXTURE_2D, texture.id)
             vlist.draw(gl.GL_TRIANGLES)
         gl.glPopMatrix()
         # re-enable stuff
         gl.glEnable(gl.GL_LIGHTING)
         gl.glEnable(gl.GL_TEXTURE_2D)
 
+
+###############################################################################
+# Convenience Functions
+###############################################################################
+def color_at_point(x, y):
+    a = (gl.GLubyte * 3)(0)
+    gl.glReadPixels(x, y, 1, 1, gl.GL_RGB, gl.GL_UNSIGNED_BYTE, a)
+    return list(a)
 
 
 ###############################################################################
@@ -167,54 +173,3 @@ def draw_rect(center, w, h, color):
     v.draw(gl.GL_QUADS)
     gl.glEnable(gl.GL_LIGHTING)
     gl.glEnable(gl.GL_TEXTURE_2D)
-
-
-def draw_line(first, last, color=None):
-    gl.glDisable(gl.GL_TEXTURE_2D)
-    gl.glDisable(gl.GL_LIGHTING)
-    #gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-    #gl.glEnable(gl.GL_BLEND)
-    if not color:
-        gl.glColor4f(1, 0, 0, 1)
-    else:
-        gl.glColor4f(*color)
-    gl.glBegin(gl.GL_LINES)
-    gl.glVertex3f(first.x, first.y, first.z)
-    gl.glVertex3f(last.x, last.y, last.z)
-    gl.glEnd()
-    gl.glEnable(gl.GL_LIGHTING)
-    gl.glEnable(gl.GL_TEXTURE_2D)
-
-
-FOVY = 60
-NEAR = 1  # 10.
-
-
-def intersection_for_point(x, y, looking_at, cam):
-    import math
-    # calculate the ray form the camera
-    width, height = SIZE
-    up = Vector3(0, 0, 1)
-    view = looking_at - cam
-    h = view.cross(up).normalized()
-    # convert field of view to radians
-    fovy = FOVY
-    nearclippingplanedistance = NEAR
-    rad = fovy * math.pi / 180.
-    v_length = math.tan(rad / 2.) * nearclippingplanedistance
-    h_length = v_length * (width / height)
-    up *= v_length
-    h *= h_length
-    # map 2d coords to viewport
-    x -= width / 2.
-    y -= height / 2.
-    x /= width / 2.
-    y /= height / 2.
-    pos = cam + view*nearclippingplanedistance + h*x + up*y
-    direction = looking_at - cam
-    #direction = pos - cam
-
-    # calculate the intersection
-    if not direction.z:
-        return Vector3(0, 0, 0)
-    return pos + direction * -pos.z/direction.z  # should pos be self.cam?

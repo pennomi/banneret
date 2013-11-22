@@ -51,11 +51,6 @@ def on_key_press(symbol, modifiers):
 @WINDOW.event
 def on_mouse_motion(x, y, dx, dy):
     BOARD.mouse = x, y
-    #HERO_FACING = HERO_FACING.rotate(
-    #    Vector3(0, 1., 0).cross(HERO_FACING), -dy / 180.).rotate(
-    #        Vector3(0, 1, 0), -dx / 180.)
-    # make the player walk
-    #update_velocity()
 
 
 def main():
