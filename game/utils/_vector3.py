@@ -74,6 +74,10 @@ class Vector3(object):
     def __nonzero__(self):
         return bool(self.x or self.y or self.z)
 
+    # This only works in Python 3. Python 2 should call it directly. (ew)
+    def __round__(self, n):
+        return Vector3(round(self.x, n), round(self.y, n), round(self.z, n))
+
     # Generic operator handlers
     def _o2(self, other, f):
         """Any two-operator operation where the left operand is a Vector3"""

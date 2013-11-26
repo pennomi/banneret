@@ -1,13 +1,15 @@
 [
-{ "class": "B0", "player": 0, "position": [0, 0] },
-{ "class": "O1", "player": 0, "position": [0, 1] },
-{ "class": "O1", "player": 0, "position": [0, 2] },
-{ "class": "O1", "player": 0, "position": [0, 3] },
-{ "class": "O1", "player": 0, "position": [0, 4] },
+{ "class": "B0", "player": 0, "position": [0, 0], "rotation": 0 },
+{ "class": "O1", "player": 0, "position": [0, 1], "rotation": 90 },
+{ "class": "O2", "player": 0, "position": [0, 2], "rotation": 0 },
+{ "class": "O1", "player": 0, "position": [0, 3], "rotation": 0 },
+{ "class": "O1", "player": 0, "position": [0, 4], "rotation": 0 },
+{ "class": "D1", "player": 0, "position": [1, 0], "rotation": 45 },
+{ "class": "B0", "player": 0, "position": [1, 1], "rotation": 0 },
 
-{ "class": "B0", "player": 1, "position": [7, 7] },
-{ "class": "O1", "player": 1, "position": [7, 6] },
-{ "class": "O1", "player": 1, "position": [7, 5] },
-{ "class": "O1", "player": 1, "position": [7, 4] },
-{ "class": "O1", "player": 1, "position": [7, 3] }
+{ "class": "B0", "player": 1, "position": [7, 7], "rotation": 180 },
+{ "class": "O1", "player": 1, "position": [7, 6], "rotation": 180 },
+{ "class": "O1", "player": 1, "position": [7, 5], "rotation": 180 },
+{ "class": "O1", "player": 1, "position": [7, 4], "rotation": 180 },
+{ "class": "O1", "player": 1, "position": [7, 3], "rotation": 180 }
 ]

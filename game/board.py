@@ -6,9 +6,11 @@ from game.renderer import Model, draw_highlight, color_at_point
 from collections import deque
 
 SURFACE_HEIGHT = 0.36
+# TODO: maybe just brighten the highlight on hover?
 WHITE_HIGHLIGHT = (1.0, 1.0, 1.0, .75)
-BLUE_HIGHLIGHT = (0.0, 0.0, 0.8, .75)
-RED_HIGHLIGHT = (0.8, 0.0, 0.0, .75)
+BLUE_HIGHLIGHT = (0.0, 0.0, 0.7, .75)
+GREEN_HIGHLIGHT = (0.0, 0.7, 0.0, .75)
+RED_HIGHLIGHT = (0.7, 0.0, 0.0, .75)
 
 
 class Player(object):
@@ -22,6 +24,7 @@ class Board(object):
     """The global gameboard. You shouldn't ever instantiate this;
     Instead, just use the provided global BOARD object, below.
     """
+    width, height = 8, 8
 
     def __init__(self):
         # set up players
@@ -32,7 +35,7 @@ class Board(object):
 
         # set up pieces
         self.pieces = PieceList()
-        self.pieces.load_from_file('default', self.players)
+        self.pieces.load_from_file(self, 'default', self.players)
         self.selected_piece = None
 
         # misc setup
@@ -45,15 +48,28 @@ class Board(object):
         self.selected_piece = self.get_selected_piece()
 
     def click(self):
+        # setup
         piece = self.selected_piece
         if not piece:
             return
         my_pieces = self.pieces.filter(player=self.active_player)
+        # process moves
         if piece in my_pieces.filter(moved=False):
             piece.move()
             return
-        if not my_pieces.filter(moved=False):
-            self.pass_turn()
+        if my_pieces.filter(moved=False):
+            return  # don't process rotation until we're done moving
+        # process rotation
+        commanders = my_pieces.filter(command=True)
+        rotate_limit = sum(piece.command_count for piece in commanders)
+        rotated = my_pieces.filter(rotated=True)
+        remaining_rotates = rotate_limit - len(rotated)
+        if ((remaining_rotates > 0 and
+             piece in my_pieces.filter(can_rotate=True)) or
+                piece in rotated):
+            # TODO: reverse rotate on right-click
+            piece.rotate()
+        # TODO: if button_pressed: self.pass_turn()
 
     def pass_turn(self):
         self.players.append(self.players.popleft())
@@ -65,7 +81,7 @@ class Board(object):
         """Via a rendering pass, find if the cursor is over any of the
         active pieces.
         """
-        # make a colored rendering pass
+        # make a specially colored rendering pass
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         for piece in self.pieces:
             piece.draw_for_picker(color=piece.color_key, scale=0.8)
@@ -89,8 +105,15 @@ class Board(object):
         if self.selected_piece and self.selected_piece in my_pieces:
             draw_highlight(self.selected_piece.square_center, WHITE_HIGHLIGHT)
 
-        for piece in my_pieces.filter(moved=False):
-            draw_highlight(piece.square_center, BLUE_HIGHLIGHT)
-
+        still_to_move = my_pieces.filter(moved=False)
+        if still_to_move:
+            for piece in still_to_move:
+                draw_highlight(piece.square_center, BLUE_HIGHLIGHT)
+        else:
+            commanders = my_pieces.filter(command=True)
+            rotate_limit = sum(piece.command_count for piece in commanders)
+            rotated = my_pieces.filter(rotated=True)
+            for piece in commanders.limit(rotate_limit - len(rotated)) + rotated:
+                draw_highlight(piece.square_center, GREEN_HIGHLIGHT)
 
 BOARD = Board()
