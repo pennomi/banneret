@@ -1,8 +1,10 @@
+from __future__ import unicode_literals, print_function
 import pyglet
 from pyglet.gl import gl
 from game.pieces import PieceList
 from game.utils import Vector3
-from game.renderer import Model, draw_highlight, color_at_point
+from game.renderer import (Model, draw_highlight, color_at_point, TextButton,
+                           enable_3d, enable_2d, WINDOW)
 from collections import deque
 
 SURFACE_HEIGHT = 0.36
@@ -11,6 +13,14 @@ WHITE_HIGHLIGHT = (1.0, 1.0, 1.0, .75)
 BLUE_HIGHLIGHT = (0.0, 0.0, 0.7, .75)
 GREEN_HIGHLIGHT = (0.0, 0.7, 0.0, .75)
 RED_HIGHLIGHT = (0.7, 0.0, 0.0, .75)
+
+PASS_TURN_BUTTON = TextButton(WINDOW)
+PASS_TURN_BUTTON.x = 50
+PASS_TURN_BUTTON.y = 50
+PASS_TURN_BUTTON.width = 60
+PASS_TURN_BUTTON.height = 30
+PASS_TURN_BUTTON.text = "Foobie Bletch"
+PASS_TURN_BUTTON.on_press = lambda: print("foo")
 
 
 class Player(object):
@@ -93,6 +103,7 @@ class Board(object):
         return None
 
     def draw(self):
+        #enable_3d()
         # draw board
         self._model.draw()
 
@@ -115,5 +126,9 @@ class Board(object):
             rotated = my_pieces.filter(rotated=True)
             for piece in commanders.limit(rotate_limit - len(rotated)) + rotated:
                 draw_highlight(piece.square_center, GREEN_HIGHLIGHT)
+
+        # Draw the GUI
+        enable_2d()
+        PASS_TURN_BUTTON.draw()
 
 BOARD = Board()

@@ -10,8 +10,8 @@ from pyglet import gl
 from pyglet.window import key
 
 from game import renderer
-from game.renderer import WINDOW
-from game.board import BOARD
+from game.renderer import WINDOW, enable_3d
+from game.board import BOARD, PASS_TURN_BUTTON
 
 
 @WINDOW.event
@@ -26,6 +26,8 @@ if 'fps' in sys.argv:
 @WINDOW.event
 def on_draw():
     gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+
+    enable_3d()
 
     # Move the camera
     gl.glLoadIdentity()
@@ -57,6 +59,10 @@ def on_mouse_motion(x, y, dx, dy):
 def on_mouse_press(x, y, button, modifiers):
     if button in [pyglet.window.mouse.LEFT]:
         BOARD.click()
+    for control in [PASS_TURN_BUTTON]:
+        if control.hit_test(x, y):
+            control.on_mouse_press(x, y, button, modifiers)
+
 
 def main():
     renderer.gl_setup()

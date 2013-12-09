@@ -26,23 +26,22 @@ def configure_gl_viewport(width, height):
     is a change in window size.
     """
     SIZE[0], SIZE[1] = width, height
-
-    gl.glViewport(0, 0, width, height)
-    gl.glMatrixMode(gl.GL_PROJECTION)
-    gl.glLoadIdentity()
-    gl.gluPerspective(60., width / float(height), .1, 1000.)
-    gl.glMatrixMode(gl.GL_MODELVIEW)
+    #gl.glViewport(0, 0, width, height)
+    #gl.glMatrixMode(gl.GL_PROJECTION)
+    #gl.glLoadIdentity()
+    #gl.gluPerspective(60., width / float(height), .1, 1000.)
+    #gl.glMatrixMode(gl.GL_MODELVIEW)
+    enable_3d()
     return pyglet.event.EVENT_HANDLED
 
 
 def gl_setup():
     """Set up OpenGL. This only needs to be run once."""
-    # TODO: Clean this out. I think a nice window subclass default to reuse
-    #       would be handy.
+    # TODO: Clean this out. A nice window subclass would be handy.
     # The RGBA screen-clearing color. Defaults to black.
     #gl.glClearColor(0.5, 0.5, 0.5, 1)
     #gl.glColor3f(1, 0, 0)  # This tints EVERYTHING
-    gl.glEnable(gl.GL_DEPTH_TEST)
+    #gl.glEnable(gl.GL_DEPTH_TEST)
     gl.glEnable(gl.GL_CULL_FACE)
 
     # Wireframe draw mode
@@ -74,6 +73,31 @@ def gl_setup():
     gl.glEnable(gl.GL_TEXTURE_2D)
 
 
+def enable_3d():
+    gl.glViewport(0, 0, *SIZE)
+    gl.glMatrixMode(gl.GL_PROJECTION)
+    gl.glLoadIdentity()
+    gl.gluPerspective(60., SIZE[0] / float(SIZE[1]), .1, 1000.)
+    gl.glMatrixMode(gl.GL_MODELVIEW)
+    gl.glLoadIdentity()  # TODO: is this needed?
+    gl.glDepthFunc(gl.GL_LEQUAL)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_LIGHTING)
+    gl.glEnable(gl.GL_CULL_FACE)
+
+
+def enable_2d():
+    gl.glMatrixMode(gl.GL_PROJECTION)
+    gl.glLoadIdentity()
+    gl.gluOrtho2D(0.0, SIZE[0], 0.0, SIZE[1])
+    gl.glMatrixMode(gl.GL_MODELVIEW)
+    gl.glLoadIdentity()
+    gl.glTranslatef(0.375, 0.375, 0.0)  # TODO: What?
+    gl.glDisable(gl.GL_DEPTH_TEST)
+    gl.glDisable(gl.GL_LIGHTING)
+    gl.glDisable(gl.GL_CULL_FACE)
+
+
 ###############################################################################
 # Loading of 3d models
 ###############################################################################
@@ -85,7 +109,8 @@ def _load_texture(filename):
     try:
         return TEXTURE_CACHE[filename]
     except KeyError:
-        img = pyglet.image.load('resources/textures/{}'.format(filename)).texture
+        img = pyglet.image.load(
+            'resources/textures/{}'.format(filename)).texture
         TEXTURE_CACHE[filename] = img.texture
         return TEXTURE_CACHE[filename]
 
@@ -174,3 +199,80 @@ def draw_highlight(xy, color):
     v.draw(gl.GL_QUADS)
     gl.glEnable(gl.GL_LIGHTING)
     gl.glEnable(gl.GL_TEXTURE_2D)
+
+
+###############################################################################
+# Button utils
+# Based on http://www.pyglet.org/doc/programming_guide/media_player.py
+# But seriously enhanced and fixed.
+###############################################################################
+def draw_rect(x, y, width, height):
+    gl.glBegin(gl.GL_QUADS)
+    gl.glVertex2f(x, y)
+    gl.glVertex2f(x + width, y)
+    gl.glVertex2f(x + width, y + height)
+    gl.glVertex2f(x, y + height)
+    gl.glEnd()
+
+
+class Control(pyglet.event.EventDispatcher):
+    x = y = 0
+    width = height = 10
+
+    def __init__(self, parent):
+        super(Control, self).__init__()
+        self.parent = parent
+
+    def hit_test(self, x, y):
+        return (self.x < x < self.x + self.width and
+                self.y < y < self.y + self.height)
+
+    def capture_events(self):
+        self.parent.push_handlers(self)
+
+    def release_events(self):
+        self.parent.remove_handlers(self)
+
+
+class Button(Control):
+    charged = False
+
+    def draw(self):
+        gl.glColor3f(0, 1, 1)
+        if self.charged:
+            gl.glColor3f(1, 0, 0)
+        draw_rect(self.x, self.y, self.width, self.height)
+        gl.glColor3f(0, 1, 1)
+        self.draw_label()
+
+    def on_mouse_press(self, x, y, button, modifiers):
+        self.capture_events()
+        self.charged = True
+
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        self.charged = self.hit_test(x, y)
+
+    def on_mouse_release(self, x, y, button, modifiers):
+        self.release_events()
+        if self.hit_test(x, y):
+            self.dispatch_event('on_press')
+        self.charged = False
+Button.register_event_type('on_press')
+
+
+class TextButton(Button):
+    def __init__(self, *args, **kwargs):
+        super(TextButton, self).__init__(*args, **kwargs)
+        self._text = pyglet.text.Label('', anchor_x='center', anchor_y='center')
+
+    def draw_label(self):
+        self._text.x = self.x + self.width / 2
+        self._text.y = self.y + self.height / 2
+        self._text.draw()
+
+    @property
+    def text(self):
+        return self._text.text
+    @text.setter
+    def text(self, text):
+        self._text.text = text
