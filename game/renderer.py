@@ -219,13 +219,14 @@ class Control(pyglet.event.EventDispatcher):
     x = y = 0
     width = height = 10
 
-    def __init__(self, parent):
+    def __init__(self, parent, x, y, w, h):
         super(Control, self).__init__()
+        self.x, self.y, self.w, self.h = x, y, w, h
         self.parent = parent
 
     def hit_test(self, x, y):
-        return (self.x < x < self.x + self.width and
-                self.y < y < self.y + self.height)
+        return (self.x < x < self.x + self.w and
+                self.y < y < self.y + self.h)
 
     def capture_events(self):
         self.parent.push_handlers(self)
@@ -241,7 +242,7 @@ class Button(Control):
         gl.glColor3f(0, 1, 1)
         if self.charged:
             gl.glColor3f(1, 0, 0)
-        draw_rect(self.x, self.y, self.width, self.height)
+        draw_rect(self.x, self.y, self.w, self.h)
         gl.glColor3f(0, 1, 1)
         self.draw_label()
 
@@ -261,18 +262,18 @@ Button.register_event_type('on_press')
 
 
 class TextButton(Button):
-    def __init__(self, *args, **kwargs):
-        super(TextButton, self).__init__(*args, **kwargs)
-        self._text = pyglet.text.Label('', anchor_x='center', anchor_y='center')
+    def __init__(self, parent, text, x, y, w, h):
+        super(TextButton, self).__init__(parent, x, y, w, h)
+        self._label = pyglet.text.Label(text, anchor_x='center', anchor_y='center')
 
     def draw_label(self):
-        self._text.x = self.x + self.width / 2
-        self._text.y = self.y + self.height / 2
-        self._text.draw()
+        self._label.x = self.x + self.w / 2
+        self._label.y = self.y + self.h / 2
+        self._label.draw()
 
     @property
     def text(self):
-        return self._text.text
+        return self._label.text
     @text.setter
     def text(self, text):
-        self._text.text = text
+        self._label.text = text

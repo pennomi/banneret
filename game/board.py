@@ -1,6 +1,6 @@
 from __future__ import unicode_literals, print_function
 import pyglet
-from pyglet.gl import gl
+from pyglet import gl
 from game.pieces import PieceList
 from game.utils import Vector3
 from game.renderer import (Model, draw_highlight, color_at_point, TextButton,
@@ -13,14 +13,6 @@ WHITE_HIGHLIGHT = (1.0, 1.0, 1.0, .75)
 BLUE_HIGHLIGHT = (0.0, 0.0, 0.7, .75)
 GREEN_HIGHLIGHT = (0.0, 0.7, 0.0, .75)
 RED_HIGHLIGHT = (0.7, 0.0, 0.0, .75)
-
-PASS_TURN_BUTTON = TextButton(WINDOW)
-PASS_TURN_BUTTON.x = 50
-PASS_TURN_BUTTON.y = 50
-PASS_TURN_BUTTON.width = 60
-PASS_TURN_BUTTON.height = 30
-PASS_TURN_BUTTON.text = "Foobie Bletch"
-PASS_TURN_BUTTON.on_press = lambda: print("foo")
 
 
 class Player(object):
@@ -35,6 +27,7 @@ class Board(object):
     Instead, just use the provided global BOARD object, below.
     """
     width, height = 8, 8
+    game_over = False
 
     def __init__(self):
         # set up players
@@ -54,10 +47,30 @@ class Board(object):
         self.cam = Vector3(8, 0, 4)
         pyglet.clock.schedule_interval(self.update, 1 / 60.)
 
+        # TODO: Reposition and resize when the window resizes
+        position = (WINDOW.width - 50 - 100, 50, 100, 30)
+        self.end_turn_btn = TextButton(WINDOW, "End Turn", *position)
+        self.end_turn_btn.on_press = self.pass_turn
+
     def update(self, dt):
         self.selected_piece = self.get_selected_piece()
+        self.check_victory()  # TODO: call in a more efficient place.
+
+    def check_victory(self):
+        # check victory
+        for player in self.players:
+            if not self.pieces.filter(player=player, command=True):
+                for piece in self.pieces.filter(player=player):
+                    self.pieces.remove(piece)
+        my_pieces = self.pieces.filter(player=self.active_player)
+        if len(self.pieces) == len(my_pieces):
+            print("Player has emerged victorious!")
+            self.game_over = True
+            # TODO: Some sort of dialog
 
     def click(self):
+        if self.game_over:
+            return
         # setup
         piece = self.selected_piece
         if not piece:
@@ -79,7 +92,6 @@ class Board(object):
                 piece in rotated):
             # TODO: reverse rotate on right-click
             piece.rotate()
-        # TODO: if button_pressed: self.pass_turn()
 
     def pass_turn(self):
         self.players.append(self.players.popleft())
@@ -91,6 +103,14 @@ class Board(object):
         """Via a rendering pass, find if the cursor is over any of the
         active pieces.
         """
+        enable_3d()
+
+        # Move the camera
+        gl.glLoadIdentity()
+        position = list(self.cam)
+        looking_at = list(self._model.position)
+        up = [0, 0, 1]
+        gl.gluLookAt(*(position + looking_at + up))
         # make a specially colored rendering pass
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         for piece in self.pieces:
@@ -103,7 +123,6 @@ class Board(object):
         return None
 
     def draw(self):
-        #enable_3d()
         # draw board
         self._model.draw()
 
@@ -128,7 +147,8 @@ class Board(object):
                 draw_highlight(piece.square_center, GREEN_HIGHLIGHT)
 
         # Draw the GUI
-        enable_2d()
-        PASS_TURN_BUTTON.draw()
+        if not my_pieces.filter(moved=False):
+            enable_2d()
+            self.end_turn_btn.draw()
 
 BOARD = Board()

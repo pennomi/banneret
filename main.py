@@ -11,7 +11,7 @@ from pyglet.window import key
 
 from game import renderer
 from game.renderer import WINDOW, enable_3d
-from game.board import BOARD, PASS_TURN_BUTTON
+from game.board import BOARD
 
 
 @WINDOW.event
@@ -59,7 +59,7 @@ def on_mouse_motion(x, y, dx, dy):
 def on_mouse_press(x, y, button, modifiers):
     if button in [pyglet.window.mouse.LEFT]:
         BOARD.click()
-    for control in [PASS_TURN_BUTTON]:
+    for control in [BOARD.end_turn_btn]:
         if control.hit_test(x, y):
             control.on_mouse_press(x, y, button, modifiers)
 

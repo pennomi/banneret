@@ -130,7 +130,7 @@ class Piece(object):
 
     def reset(self):
         self.moved = False
-        self.rotated = False
+        self.direction = self.direction_target
 
     def move(self):
         # This is always an *attempted* move, so it's marked such.
@@ -145,7 +145,7 @@ class Piece(object):
         v = self.direction.__round__(0)
         # Check out of bounds
         target = self.position + v  # Only move one square at a time
-        # adjust because board center is (0, 0)
+        # Adjust because board center is (0, 0)
         w, h = self.board.width / 2, self.board.height / 2
         if abs(target.x) > w or abs(target.y) > h:
             self.remaining_move = self.speed
@@ -153,7 +153,8 @@ class Piece(object):
         # Check the board for pieces existing at the target
         for p in self.board.pieces[:]:
             if p.position == target:
-                if p.player != self.player and p.direction != -self.direction:
+                if p.player != self.player and (p.direction != -self.direction
+                                                or p.rotation_angle == 360):
                     self.board.pieces.remove(p)
                 else:
                     self.remaining_move = self.speed
