@@ -3,56 +3,31 @@ from __future__ import print_function
 import sys
 import pyglet
 # TODO: Is there a better place to put this stuff?
+from game.utils import Vector3
+
 if 'nogldebug' in sys.argv:
     pyglet.options['debug_gl'] = False
 
 from pyglet import gl
-from pyglet.window import key
-
-from game import renderer
-from game.renderer import WINDOW, enable_3d
+from game.renderer import WINDOW
 from game.board import BOARD
-
-
-@WINDOW.event
-def on_resize(width, height):
-    return renderer.configure_gl_viewport(width, height)
-
-
-if 'fps' in sys.argv:
-    pyglet.clock.schedule_interval(lambda dt: print(pyglet.clock.get_fps()), 1)
 
 
 @WINDOW.event
 def on_draw():
     gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-
-    enable_3d()
-
-    # Move the camera
-    gl.glLoadIdentity()
-    position = list(BOARD.cam)
-    looking_at = list(BOARD._model.position)
-    up = [0, 0, 1]
-    gl.gluLookAt(*(position + looking_at + up))
+    WINDOW.enable_3d()
 
     # Draw stuff
     BOARD.draw()
     gl.glFinish()
 
 
-@WINDOW.event
-def on_key_press(symbol, modifiers):
-    # TODO: smooth scroll and up/down
-    if symbol in [key.RIGHT, key.D]:
-        BOARD.cam.rotate_around_z(10)
-    elif symbol in [key.LEFT, key.A]:
-        BOARD.cam.rotate_around_z(-10)
-
-
+# TODO: Move as many of these functions off to the window subclass as possible
+# TODO: Scroll to zoom
 @WINDOW.event
 def on_mouse_motion(x, y, dx, dy):
-    BOARD.mouse = x, y
+    WINDOW.mouse.x, WINDOW.mouse.y = x, y
 
 
 @WINDOW.event
@@ -64,8 +39,21 @@ def on_mouse_press(x, y, button, modifiers):
             control.on_mouse_press(x, y, button, modifiers)
 
 
+@WINDOW.event
+def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
+    # Move cam when holding right and dragging
+    if pyglet.window.mouse.RIGHT & buttons:
+        WINDOW.camera.position.rotate_around_z(-dx / 2.)
+        # TODO: rotate around camera.up
+        z_angle = WINDOW.camera.position.angle_around_z
+        WINDOW.camera.position.angle_around_z = 0
+        WINDOW.camera.position.rotate_around_y(dy / 2.)
+        WINDOW.camera.position.angle_around_z = z_angle
+
+
 def main():
-    renderer.gl_setup()
+    WINDOW.camera.position = Vector3(8, 0, 4)
+    WINDOW.camera.looking_at = BOARD._model.position
     pyglet.app.run()
 
 if __name__ == "__main__":

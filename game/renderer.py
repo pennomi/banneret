@@ -1,5 +1,7 @@
+from __future__ import print_function
 import pickle
 import pyglet
+import sys
 from pyglet import gl
 from game.utils import Vector3
 
@@ -9,93 +11,64 @@ config = gl.Config(
     depth_size=16,       # ???
     double_buffer=True,  # Render and swap
 )
-WINDOW = pyglet.window.Window(resizable=True, config=config)
-SIZE = [0, 0]
+
+
+class Camera(object):
+    up = Vector3(0, 0, 1)
+    looking_at = Vector3(0, 0, 0)
+    position = Vector3(1, 0, 0)
+
+    def look(self):
+        gl.glLoadIdentity()
+        data = list(self.position) + list(self.looking_at) + list(self.up)
+        gl.gluLookAt(*data)
 
 ###############################################################################
 # Pyglet Window subclass
 ###############################################################################
-# TODO: Subclass Window!
+class GameWindow(pyglet.window.Window):
+    class Mouse(object):
+        x, y = 0, 0
 
+    def __init__(self, *args, **kwargs):
+        super(GameWindow, self).__init__(*args, **kwargs)
+        self.mouse = self.Mouse()
+        self.camera = Camera()
 
-###############################################################################
-# Configuration and setup
-###############################################################################
-def configure_gl_viewport(width, height):
-    """Set the viewport up to use OpenGL. This must be called every time there
-    is a change in window size.
-    """
-    SIZE[0], SIZE[1] = width, height
-    #gl.glViewport(0, 0, width, height)
-    #gl.glMatrixMode(gl.GL_PROJECTION)
-    #gl.glLoadIdentity()
-    #gl.gluPerspective(60., width / float(height), .1, 1000.)
-    #gl.glMatrixMode(gl.GL_MODELVIEW)
-    enable_3d()
-    return pyglet.event.EVENT_HANDLED
+        if 'fps' in sys.argv:
+            pyglet.clock.schedule_interval(
+                lambda dt: print(pyglet.clock.get_fps()), 1)
 
+    def enable_3d(self):
+        gl.glViewport(0, 0, self.width, self.height)
+        gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glLoadIdentity()
+        gl.gluPerspective(60., self.width / float(self.height), .1, 1000.)
+        gl.glMatrixMode(gl.GL_MODELVIEW)
+        gl.glLoadIdentity()  # TODO: is this needed?
+        gl.glDepthFunc(gl.GL_LEQUAL)
+        gl.glEnable(gl.GL_DEPTH_TEST)
+        gl.glEnable(gl.GL_CULL_FACE)
+        # TODO: probably find a better place to enable and configure these
+        # TODO TODO: Just use shader-based lighting anyway.
+        gl.glEnable(gl.GL_LIGHTING)
+        gl.glEnable(gl.GL_LIGHT0)
+        gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION,
+                     (gl.GLfloat * 4)(0, 5, 10, 1))
+        # update the camera
+        self.camera.look()
 
-def gl_setup():
-    """Set up OpenGL. This only needs to be run once."""
-    # TODO: Clean this out. A nice window subclass would be handy.
-    # The RGBA screen-clearing color. Defaults to black.
-    #gl.glClearColor(0.5, 0.5, 0.5, 1)
-    #gl.glColor3f(1, 0, 0)  # This tints EVERYTHING
-    #gl.glEnable(gl.GL_DEPTH_TEST)
-    gl.glEnable(gl.GL_CULL_FACE)
-
-    # Wireframe draw mode
-    #gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
-
-    # Simple light setup
-    gl.glEnable(gl.GL_LIGHTING)
-
-    # Define a simple function to create ctypes arrays of floats:
-    def vec(*args):
-        return (gl.GLfloat * len(args))(*args)
-
-    gl.glEnable(gl.GL_LIGHT0)   # add one light
-    #gl.glLightfv(gl.GL_LIGHT0, gl.GL_SPECULAR, vec(0, 0, 1, 1))
-    #gl.glLightfv(gl.GL_LIGHT0, gl.GL_DIFFUSE, vec(1, 0.5, 0, 1))
-    #gl.glLightfv(gl.GL_LIGHT0, gl.GL_AMBIENT, vec(0, 1, 0, 1))
-    gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, vec(0, 5, 10, 1))
-
-    #gl.glLightf(gl.GL_LIGHT0, gl.GL_CONSTANT_ATTENUATION, 1.0) # default is 1.0
-    #gl.glLightf(gl.GL_LIGHT0, gl.GL_LINEAR_ATTENUATION, 0.1)
-    #gl.glLightf(gl.GL_LIGHT0, gl.GL_QUADRATIC_ATTENUATION, 0.1)
-
-    #gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT_AND_DIFFUSE,
-    #                vec(1.0, 1.0, 1.0, 1))
-    #gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR,
-    #                vec(1.0, 1.0, 1.0, 1))
-    #gl.glMaterialf(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, 90)
-
-    gl.glEnable(gl.GL_TEXTURE_2D)
-
-
-def enable_3d():
-    gl.glViewport(0, 0, *SIZE)
-    gl.glMatrixMode(gl.GL_PROJECTION)
-    gl.glLoadIdentity()
-    gl.gluPerspective(60., SIZE[0] / float(SIZE[1]), .1, 1000.)
-    gl.glMatrixMode(gl.GL_MODELVIEW)
-    gl.glLoadIdentity()  # TODO: is this needed?
-    gl.glDepthFunc(gl.GL_LEQUAL)
-    gl.glEnable(gl.GL_DEPTH_TEST)
-    gl.glEnable(gl.GL_LIGHTING)
-    gl.glEnable(gl.GL_CULL_FACE)
-
-
-def enable_2d():
-    gl.glMatrixMode(gl.GL_PROJECTION)
-    gl.glLoadIdentity()
-    gl.gluOrtho2D(0.0, SIZE[0], 0.0, SIZE[1])
-    gl.glMatrixMode(gl.GL_MODELVIEW)
-    gl.glLoadIdentity()
-    gl.glTranslatef(0.375, 0.375, 0.0)  # TODO: What?
-    gl.glDisable(gl.GL_DEPTH_TEST)
-    gl.glDisable(gl.GL_LIGHTING)
-    gl.glDisable(gl.GL_CULL_FACE)
+    def enable_2d(self):
+        gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glLoadIdentity()
+        gl.gluOrtho2D(0.0, self.width, 0.0, self.height)
+        gl.glMatrixMode(gl.GL_MODELVIEW)
+        gl.glLoadIdentity()
+        gl.glTranslatef(0.375, 0.375, 0.0)  # TODO: What?
+        gl.glDisable(gl.GL_DEPTH_TEST)
+        gl.glDisable(gl.GL_CULL_FACE)
+        gl.glDisable(gl.GL_LIGHTING)
+WINDOW = GameWindow(resizable=True, config=config)
 
 
 ###############################################################################

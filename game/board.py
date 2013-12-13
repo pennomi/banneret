@@ -4,7 +4,7 @@ from pyglet import gl
 from game.pieces import PieceList
 from game.utils import Vector3
 from game.renderer import (Model, draw_highlight, color_at_point, TextButton,
-                           enable_3d, enable_2d, WINDOW)
+                           WINDOW)
 from collections import deque
 
 SURFACE_HEIGHT = 0.36
@@ -42,12 +42,11 @@ class Board(object):
         self.selected_piece = None
 
         # misc setup
-        self.mouse = (0, 0)
         self._model = Model('board', Vector3(0, 0, -SURFACE_HEIGHT))
-        self.cam = Vector3(8, 0, 4)
         pyglet.clock.schedule_interval(self.update, 1 / 60.)
 
-        # TODO: Reposition and resize when the window resizes
+        # TODO: Reposition and resize when the window resizes, perhaps make
+        #       this % based instead of absolute?
         position = (WINDOW.width - 50 - 100, 50, 100, 30)
         self.end_turn_btn = TextButton(WINDOW, "End Turn", *position)
         self.end_turn_btn.on_press = self.pass_turn
@@ -100,33 +99,25 @@ class Board(object):
             piece.reset()
 
     def get_selected_piece(self):
-        """Via a rendering pass, find if the cursor is over any of the
+        """Via a special rendering pass, find if the cursor is over any of the
         active pieces.
         """
-        enable_3d()
+        WINDOW.enable_3d()
 
-        # Move the camera
-        gl.glLoadIdentity()
-        position = list(self.cam)
-        looking_at = list(self._model.position)
-        up = [0, 0, 1]
-        gl.gluLookAt(*(position + looking_at + up))
         # make a specially colored rendering pass
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         for piece in self.pieces:
             piece.draw_for_picker(color=piece.color_key, scale=0.8)
         # check for a matching color among pieces
-        color = color_at_point(*self.mouse)
+        color = color_at_point(WINDOW.mouse.x, WINDOW.mouse.y)
         for piece in self.pieces:
             if piece.matches_color(color):
                 return piece
         return None
 
     def draw(self):
-        # draw board
+        # draw board and pieces
         self._model.draw()
-
-        # draw pieces
         for piece in self.pieces:
             piece.draw(scale=0.8)
 
@@ -134,6 +125,7 @@ class Board(object):
         my_pieces = self.pieces.filter(player=self.active_player)
         if self.selected_piece and self.selected_piece in my_pieces:
             draw_highlight(self.selected_piece.square_center, WHITE_HIGHLIGHT)
+            # TODO: instead draw an arrow of where it will move
 
         still_to_move = my_pieces.filter(moved=False)
         if still_to_move:
@@ -148,7 +140,7 @@ class Board(object):
 
         # Draw the GUI
         if not my_pieces.filter(moved=False):
-            enable_2d()
+            WINDOW.enable_2d()
             self.end_turn_btn.draw()
 
 BOARD = Board()
