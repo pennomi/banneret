@@ -5,23 +5,6 @@ import sys
 from pyglet import gl
 from game.utils import Vector3
 
-config = gl.Config(
-    sample_buffers=1,    # For antialiasing
-    samples=4,           # number of antialiasing samples
-    depth_size=16,       # ???
-    double_buffer=True,  # Render and swap
-)
-
-
-class Camera(object):
-    up = Vector3(0, 0, 1)
-    looking_at = Vector3(0, 0, 0)
-    position = Vector3(1, 0, 0)
-
-    def look(self):
-        gl.glLoadIdentity()
-        data = list(self.position) + list(self.looking_at) + list(self.up)
-        gl.gluLookAt(*data)
 
 ###############################################################################
 # Pyglet Window subclass
@@ -30,14 +13,43 @@ class GameWindow(pyglet.window.Window):
     class Mouse(object):
         x, y = 0, 0
 
-    def __init__(self, *args, **kwargs):
-        super(GameWindow, self).__init__(*args, **kwargs)
-        self.mouse = self.Mouse()
-        self.camera = Camera()
+    class Camera(object):
+        up = Vector3(0, 0, 1)
+        looking_at = Vector3(0, 0, 0)
+        position = Vector3(1, 0, 0)
 
+        def look(self):
+            gl.glLoadIdentity()
+            data = list(self.position) + list(self.looking_at) + list(self.up)
+            gl.gluLookAt(*data)
+
+    def __init__(self, *args, **kwargs):
+        # update kwargs
+        kwargs['config'] = gl.Config(
+            sample_buffers=1,    # For antialiasing
+            samples=4,           # number of antialiasing samples
+            depth_size=16,       # ???
+            double_buffer=True,  # Render and swap
+        )
+        kwargs['resizable'] = True
+        super(GameWindow, self).__init__(*args, **kwargs)
+
+        # init mouse and camera
+        self.mouse = self.Mouse()
+        self.camera = self.Camera()
+
+        # init fps counter
+        # TODO: make this a label instead.
         if 'fps' in sys.argv:
             pyglet.clock.schedule_interval(
                 lambda dt: print(pyglet.clock.get_fps()), 1)
+
+    def finish(self):
+        """Calling this when done rendering helps prevent a bug on Ubuntu."""
+        gl.glFinish()
+
+    def on_mouse_motion(self, x, y, dx, dy):
+        self.mouse.x, self.mouse.y = x, y
 
     def enable_3d(self):
         gl.glViewport(0, 0, self.width, self.height)
@@ -45,12 +57,12 @@ class GameWindow(pyglet.window.Window):
         gl.glLoadIdentity()
         gl.gluPerspective(60., self.width / float(self.height), .1, 1000.)
         gl.glMatrixMode(gl.GL_MODELVIEW)
-        gl.glLoadIdentity()  # TODO: is this needed?
         gl.glDepthFunc(gl.GL_LEQUAL)
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_CULL_FACE)
         # TODO: probably find a better place to enable and configure these
         # TODO TODO: Just use shader-based lighting anyway.
+        gl.glLoadIdentity()
         gl.glEnable(gl.GL_LIGHTING)
         gl.glEnable(gl.GL_LIGHT0)
         gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION,
@@ -64,11 +76,10 @@ class GameWindow(pyglet.window.Window):
         gl.gluOrtho2D(0.0, self.width, 0.0, self.height)
         gl.glMatrixMode(gl.GL_MODELVIEW)
         gl.glLoadIdentity()
-        gl.glTranslatef(0.375, 0.375, 0.0)  # TODO: What?
         gl.glDisable(gl.GL_DEPTH_TEST)
         gl.glDisable(gl.GL_CULL_FACE)
         gl.glDisable(gl.GL_LIGHTING)
-WINDOW = GameWindow(resizable=True, config=config)
+WINDOW = GameWindow(resizable=True)
 
 
 ###############################################################################
@@ -217,7 +228,6 @@ class Button(Control):
             gl.glColor3f(1, 0, 0)
         draw_rect(self.x, self.y, self.w, self.h)
         gl.glColor3f(0, 1, 1)
-        self.draw_label()
 
     def on_mouse_press(self, x, y, button, modifiers):
         self.capture_events()
@@ -243,6 +253,10 @@ class TextButton(Button):
         self._label.x = self.x + self.w / 2
         self._label.y = self.y + self.h / 2
         self._label.draw()
+
+    def draw(self):
+        super(TextButton, self).draw()
+        self.draw_label()
 
     @property
     def text(self):

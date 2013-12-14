@@ -89,7 +89,7 @@ class Board(object):
         if ((remaining_rotates > 0 and
              piece in my_pieces.filter(can_rotate=True)) or
                 piece in rotated):
-            # TODO: reverse rotate on right-click
+            # TODO: reverse rotate on right-click?
             piece.rotate()
 
     def pass_turn(self):
