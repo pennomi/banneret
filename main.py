@@ -6,10 +6,11 @@ import pyglet
 if 'nogldebug' in sys.argv:
     pyglet.options['debug_gl'] = False
 
-from game.utils import Vector3
+from euclid import Vector3
 from game.renderer import WINDOW
 from game.board import BOARD
 
+Z_AXIS = Vector3(0, 0, 1)
 
 @WINDOW.event
 def on_draw():
@@ -33,12 +34,10 @@ def on_mouse_press(x, y, button, modifiers):
 def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
     # Move cam when holding right and dragging
     if pyglet.window.mouse.RIGHT & buttons:
-        WINDOW.camera.position.rotate_around_z(-dx / 2.)
-        # TODO: rotate around camera.up instead
-        z_angle = WINDOW.camera.position.angle_around_z
-        WINDOW.camera.position.angle_around_z = 0
-        WINDOW.camera.position.rotate_around_y(dy / 2.)
-        WINDOW.camera.position.angle_around_z = z_angle
+        cam = WINDOW.camera
+        cam.position = cam.position.rotate_around(Z_AXIS, -dx / 64.)
+        axis = cam.up.cross(cam.position)
+        cam.position = cam.position.rotate_around(axis, dy / 64.)
 
 
 def main():

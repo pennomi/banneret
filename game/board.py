@@ -2,7 +2,7 @@ from __future__ import unicode_literals, print_function
 import pyglet
 from pyglet import gl
 from game.pieces import PieceList
-from game.utils import Vector3
+from euclid import Vector3
 from game.renderer import (Model, draw_highlight, color_at_point, TextButton,
                            WINDOW)
 from collections import deque

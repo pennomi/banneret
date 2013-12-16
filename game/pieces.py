@@ -2,9 +2,16 @@ import json
 from math import copysign
 from random import randint
 import weakref
-from game.utils import Vector3
+from euclid import Vector3
+import math
 from game.renderer import Model, _load_texture
 import game
+
+
+def roundvec(v, n=2):
+    return Vector3(round(v.x, n), round(v.y, n), round(v.z, n))
+X_AXIS = Vector3(1, 0, 0)
+Z_AXIS = Vector3(0, 0, 1)
 
 
 class PieceList(list):
@@ -12,6 +19,9 @@ class PieceList(list):
     attributes:
         * player
         * moved
+        * can_rotate
+        * rotated
+        * command
     """
     def filter(self,
                player=None,
@@ -58,7 +68,8 @@ class PieceList(list):
             player = players[piece['player']]
             x, y = piece['position']
             direction = Vector3(1, 0, 0)
-            direction.angle_around_z = piece['rotation']
+            direction = direction.rotate_around(
+                Z_AXIS, piece['rotation'] * math.pi / 180)
             self.append(P(board, player, x, y, direction))
 
 
@@ -88,7 +99,9 @@ class Piece(object):
         self._model.vertex_lists = v
         # set the rotation
         self.direction = direction
-        self.direction_target = self.direction
+        self.old_direction = self.direction
+        self._model.angle = (self.direction.angle(X_AXIS)*180/math.pi -
+                             self.rotation_offset)
         # forward draw requests
         self.draw = self._model.draw
         self.draw_for_picker = self._model.draw_for_picker
@@ -102,17 +115,6 @@ class Piece(object):
         self.remaining_move = self.speed
 
     @property
-    def direction_target(self):
-        v = Vector3(1, 0, 0)
-        v.angle_around_z = self._model.angle + self.rotation_offset
-        v = v.__round__(2)
-        return v
-    @direction_target.setter
-    def direction_target(self, v):
-        # TODO: validate it's a legal direction
-        self._model.angle = v.angle_around_z - self.rotation_offset
-
-    @property
     def position(self):
         return self._model.position
     @position.setter
@@ -121,16 +123,17 @@ class Piece(object):
 
     @property
     def rotated(self):
-        return self.direction.__round__(2) != self.direction_target.__round__(2)
+        return roundvec(self.direction) != roundvec(self.old_direction)
 
     def rotate(self):
-        new_direction = Vector3(self.direction_target)
-        new_direction.angle_around_z += self.rotation_angle
-        self.direction_target = new_direction
+        self.direction = self.direction.rotate_around(
+            Z_AXIS, self.rotation_angle * math.pi / 180)
+        self._model.angle += self.rotation_angle
 
     def reset(self):
         self.moved = False
-        self.direction = self.direction_target
+        self.remaining_move = self.speed
+        self.old_direction = self.direction
 
     def move(self):
         # This is always an *attempted* move, so it's marked such.
@@ -139,25 +142,23 @@ class Piece(object):
         if self.remaining_move:
             self.remaining_move -= 1
         else:
-            self.remaining_move = self.speed
             return
         # Make the vector have all 1s, 0s, and -1s.
-        v = self.direction.__round__(0)
+        v = roundvec(self.direction, 0)
         # Check out of bounds
         target = self.position + v  # Only move one square at a time
         # Adjust because board center is (0, 0)
         w, h = self.board.width / 2, self.board.height / 2
         if abs(target.x) > w or abs(target.y) > h:
-            self.remaining_move = self.speed
             return
         # Check the board for pieces existing at the target
         for p in self.board.pieces[:]:
             if p.position == target:
-                if p.player != self.player and (p.direction != -self.direction
-                                                or p.rotation_angle == 360):
+                engaged = roundvec(p.direction) == roundvec(-self.direction)
+                can_capture = not engaged or p.rotation_angle == 360
+                if p.player != self.player and can_capture:
                     self.board.pieces.remove(p)
                 else:
-                    self.remaining_move = self.speed
                     return
         # All's clear! Move.
         self.position = target
@@ -198,3 +199,10 @@ class D1(Piece):
     rotation_angle = 90
     rotation_offset = 45
     _texture_override = "D1.jpg"
+
+
+class D2(Piece):
+    speed = 2
+    rotation_angle = 90
+    rotation_offset = 45
+    _texture_override = "D2.jpg"

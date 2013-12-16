@@ -3,7 +3,7 @@ import pickle
 import pyglet
 import sys
 from pyglet import gl
-from game.utils import Vector3
+from euclid import Vector3
 
 
 ###############################################################################
