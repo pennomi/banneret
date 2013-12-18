@@ -2,9 +2,14 @@ import json
 from math import copysign
 from random import randint
 import weakref
-from euclid import Vector3
 import math
-from game.renderer import Model, _load_texture
+
+from euclid import Vector3
+from pyglet import gl
+from pyglet.graphics import Batch
+from game.obj_batch import OBJ
+
+from game.renderer import _load_texture
 import game
 
 
@@ -89,22 +94,19 @@ class Piece(object):
         self.board = weakref.proxy(board)
         self.player = player  # TODO: weakref?
         # place the piece on the board
-        center = Vector3(x - 3.5, y - 3.5, 0)
-        # create and monkey patch the model
-        self._model = Model('square', position=center)
-        if not self._texture_override:
-            raise ValueError("Subclass must provide a texture override.")
-        v = {_load_texture(self._texture_override): v
-             for v in self._model.vertex_lists.values()}
-        self._model.vertex_lists = v
+        self.position = Vector3(x - 3.5, y - 3.5, 0)
+        # load the model
+        # TODO: Cached loading
+        self._obj = OBJ('resources/models/square.obj')
+        self.batch = Batch()
+        self._obj.add_to(self.batch)
+        self.texture = _load_texture(self._texture_override)
         # set the rotation
         self.direction = direction
         self.old_direction = self.direction
-        self._model.angle = (self.direction.angle(X_AXIS)*180/math.pi -
-                             self.rotation_offset)
-        # forward draw requests
-        self.draw = self._model.draw
-        self.draw_for_picker = self._model.draw_for_picker
+        # TODO: is angle necessary anymore?
+        self.angle = (self.direction.angle(X_AXIS)*180/math.pi -
+                      self.rotation_offset)
         # generate a color key
         # TODO: Ensure this *never* collides (it definitely has a chance)
         self.color_key = (randint(1, 254) / 255.,
@@ -114,12 +116,33 @@ class Piece(object):
         # set remaining_move to speed
         self.remaining_move = self.speed
 
-    @property
-    def position(self):
-        return self._model.position
-    @position.setter
-    def position(self, val):
-        self._model.position = val
+    def draw(self, scale=1):
+        gl.glPushMatrix()
+        gl.glEnable(gl.GL_TEXTURE_2D)
+        gl.glTranslatef(*self.position)
+        gl.glRotatef(self.angle, 0, 0, 1)
+        gl.glScalef(scale, scale, scale)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture.id)
+        self.batch.draw()
+        gl.glPopMatrix()
+
+    def draw_for_picker(self, scale=1):
+        # disable stuff
+        gl.glDisable(gl.GL_TEXTURE_2D)
+        gl.glDisable(gl.GL_LIGHTING)
+        gl.glColor3f(*self.color_key)
+        gl.glPushMatrix()
+        gl.glTranslatef(*self.position)
+        gl.glRotatef(self.angle, 0, 0, 1)
+        gl.glScalef(scale, scale, scale)
+        # This is a weird way of doing it, but hey, whatever
+        for v1 in self.batch.group_map.values():
+            for v2 in v1.values():
+                v2.draw(gl.GL_TRIANGLES)
+        gl.glPopMatrix()
+        # re-enable stuff
+        gl.glEnable(gl.GL_LIGHTING)
+        gl.glEnable(gl.GL_TEXTURE_2D)
 
     @property
     def rotated(self):
@@ -128,7 +151,7 @@ class Piece(object):
     def rotate(self):
         self.direction = self.direction.rotate_around(
             Z_AXIS, self.rotation_angle * math.pi / 180)
-        self._model.angle += self.rotation_angle
+        self.angle += self.rotation_angle
 
     def reset(self):
         self.moved = False

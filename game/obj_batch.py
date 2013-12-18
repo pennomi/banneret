@@ -1,19 +1,10 @@
-"""
-Wavefront OBJ renderer using pyglet's Batch class.
-
-Based on pyglet/contrib/model/model/obj.py
-
-I think the original source is in the public domain, so I keep the same
-license for this version.
-
-Juan J. Martinez <jjm@usebox.net>
+"""Wavefront OBJ renderer using pyglet's Batch class.
+Based on the public domain code by Juan J. Martinez <jjm@usebox.net>.
 """
 import os
-import logging
-
-from pyglet.gl import *
+import pyglet
+from pyglet import gl
 from pyglet import graphics
-
 import math
 import euclid
 
@@ -31,27 +22,25 @@ class Material(graphics.Group):
         self.name = name
         super(Material, self).__init__(**kwargs)
 
-    def set_state(self, face=GL_FRONT_AND_BACK):
+    def set_state(self, face=gl.GL_FRONT_AND_BACK):
         if self.texture:
-            glEnable(self.texture.target)
-            glBindTexture(self.texture.target, self.texture.id)
+            gl.glEnable(self.texture.target)
+            gl.glBindTexture(self.texture.target, self.texture.id)
         else:
-            glDisable(GL_TEXTURE_2D)
+            gl.glDisable(gl.GL_TEXTURE_2D)
 
-        glMaterialfv(face, GL_DIFFUSE,
-                     (GLfloat * 4)(*(self.diffuse + [self.opacity])))
-        glMaterialfv(face, GL_AMBIENT,
-                     (GLfloat * 4)(*(self.ambient + [self.opacity])))
-        glMaterialfv(face, GL_SPECULAR,
-                     (GLfloat * 4)(*(self.specular + [self.opacity])))
-        glMaterialfv(face, GL_EMISSION,
-                     (GLfloat * 4)(*(self.emission + [self.opacity])))
-        glMaterialf(face, GL_SHININESS, self.shininess)
+        float4 = (gl.GLfloat * 4)
+        o = [self.opacity]
+        gl.glMaterialfv(face, gl.GL_DIFFUSE, float4(*(self.diffuse + o)))
+        gl.glMaterialfv(face, gl.GL_AMBIENT, float4(*(self.ambient + o)))
+        gl.glMaterialfv(face, gl.GL_SPECULAR, float4(*(self.specular + o)))
+        gl.glMaterialfv(face, gl.GL_EMISSION, float4(*(self.emission + o)))
+        gl.glMaterialf(face, gl.GL_SHININESS, self.shininess)
 
     def unset_state(self):
         if self.texture:
-            glDisable(self.texture.target)
-        glDisable(GL_COLOR_MATERIAL)
+            gl.glDisable(self.texture.target)
+        gl.glDisable(gl.GL_COLOR_MATERIAL)
 
     def __eq__(self, other):
         if self.texture is None:
@@ -132,7 +121,7 @@ class OBJ(object):
             elif values[0] in ('usemtl', 'usemat'):
                 material = self.materials.get(values[1], None)
                 if material is None:
-                    logging.warn('Unknown material: %s' % values[1])
+                    print('Unknown material: %s'.format(values[1]))
                 if mesh is not None:
                     group = MaterialGroup(material)
                     mesh.groups.append(group)
@@ -168,9 +157,6 @@ class OBJ(object):
                         t_index += len(tex_coords) - 1
                     if n_index < 0:
                         n_index += len(normals) - 1
-                    #vertex = tex_coords[t_index] + \
-                    #         normals[n_index] + \
-                    #         vertices[v_index]
 
                     group.normals += normals[n_index]
                     group.tex_coords += tex_coords[t_index]
@@ -234,7 +220,7 @@ class OBJ(object):
                     normals.extend(tn[:])
 
                 specified_batch.add(len(vertices)//3,
-                                    GL_TRIANGLES,
+                                    gl.GL_TRIANGLES,
                                     group.material,
                                     ('v3f/static', tuple(vertices)),
                                     ('n3f/static', tuple(normals)),
@@ -260,7 +246,7 @@ class OBJ(object):
                 material = Material(values[1])
                 self.materials[material.name] = material
             elif material is None:
-                logging.warn('Expected "newmtl" in %s' % filename)
+                print('Expected "newmtl" in %s'.format(filename))
                 continue
 
             try:
@@ -279,59 +265,57 @@ class OBJ(object):
                 elif values[0] == 'map_Kd':
                     try:
                         material.texture = pyglet.resource.image(
-                            values[1]).texture
+                            "resources/textures/{}".format(values[1])).texture
                     except BaseException as ex:
-                        logging.warn('Could not load texture {}: {}'.format(
+                        print('Could not load texture {}: {}'.format(
                             values[1], ex))
             except BaseException as ex:
-                logging.warn('Parse error in {}. {}'.format(filename, ex))
+                print('Parse error in {}. {}'.format(filename, ex))
+
 
 if __name__ == "__main__":
     import sys
     import ctypes
 
     if len(sys.argv) != 2:
-        logging.error("Usage: {} file.obj".format(sys.argv[0]))
+        print("Usage: {} file.obj".format(sys.argv[0]))
     else:
         window = pyglet.window.Window()
-
         fourfv = ctypes.c_float * 4
-        glLightfv(GL_LIGHT0, GL_POSITION, fourfv(0, 200, 5000, 1))
-        glLightfv(GL_LIGHT0, GL_AMBIENT, fourfv(0.0, 0.0, 0.0, 1.0))
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, fourfv(1.0, 1.0, 1.0, 1.0))
-        glLightfv(GL_LIGHT0, GL_SPECULAR, fourfv(1.0, 1.0, 1.0, 1.0))
-        glEnable(GL_LIGHT0)
-        glEnable(GL_LIGHTING)
-        glEnable(GL_DEPTH_TEST)
+        gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, fourfv(0, 200, 5000, 1))
+        gl.glLightfv(gl.GL_LIGHT0, gl.GL_AMBIENT, fourfv(0.0, 0.0, 0.0, 1.0))
+        gl.glLightfv(gl.GL_LIGHT0, gl.GL_DIFFUSE, fourfv(1.0, 1.0, 1.0, 1.0))
+        gl.glLightfv(gl.GL_LIGHT0, gl.GL_SPECULAR, fourfv(1.0, 1.0, 1.0, 1.0))
+        gl.glEnable(gl.GL_LIGHT0)
+        gl.glEnable(gl.GL_LIGHTING)
+        gl.glEnable(gl.GL_DEPTH_TEST)
 
         @window.event
         def on_resize(width, height):
-            glMatrixMode(GL_PROJECTION)
-            glLoadIdentity()
-            gluPerspective(60.0, float(width)/height, 1.0, 100.0)
-            glMatrixMode(GL_MODELVIEW)
+            gl.glMatrixMode(gl.GL_PROJECTION)
+            gl.glLoadIdentity()
+            gl.gluPerspective(60.0, float(width)/height, 1.0, 100.0)
+            gl.glMatrixMode(gl.GL_MODELVIEW)
             return True
 
         @window.event
         def on_draw():
             window.clear()
-            glLoadIdentity()
-            gluLookAt(0, 8, 8, 0, 0, 0, 0, 1, 0)
-            glRotatef(rot, 1, 0, 0)
-            glRotatef(rot/2, 0, 1, 0)
+            gl.glLoadIdentity()
+            gl.gluLookAt(0, 8, 8, 0, 0, 0, 0, 1, 0)
+            gl.glRotatef(rot, 1, 0, 0)
+            gl.glRotatef(rot/2, 0, 1, 0)
             batch.draw()
-            glFinish()
+            gl.glFinish()
 
         rot = 0
 
         def update(dt):
             global rot
             rot += dt*75
-
         pyglet.clock.schedule_interval(update, 1.0/60)
 
         obj = OBJ(sys.argv[1])
         batch = pyglet.graphics.Batch()
         obj.add_to(batch)
-
         pyglet.app.run()

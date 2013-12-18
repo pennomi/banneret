@@ -1,10 +1,11 @@
 from __future__ import unicode_literals, print_function
 import pyglet
 from pyglet import gl
+from pyglet.graphics import Batch
+from game.obj_batch import OBJ
 from game.pieces import PieceList
 from euclid import Vector3
-from game.renderer import (Model, draw_highlight, color_at_point, TextButton,
-                           WINDOW)
+from game.renderer import draw_highlight, color_at_point, TextButton, WINDOW
 from collections import deque
 
 SURFACE_HEIGHT = 0.36
@@ -42,7 +43,11 @@ class Board(object):
         self.selected_piece = None
 
         # misc setup
-        self._model = Model('board', Vector3(0, 0, -SURFACE_HEIGHT))
+        self.position = Vector3(0, 0, -SURFACE_HEIGHT)
+        self._obj = OBJ('resources/models/board.obj')
+        self.batch = Batch()
+        self._obj.translate(*self.position)
+        self._obj.add_to(self.batch)
         pyglet.clock.schedule_interval(self.update, 1 / 60.)
 
         # TODO: Reposition and resize when the window resizes, perhaps make
@@ -103,12 +108,9 @@ class Board(object):
         active pieces.
         """
         WINDOW.enable_3d()
-
-        # make a specially colored rendering pass
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         for piece in self.pieces:
-            piece.draw_for_picker(color=piece.color_key, scale=0.8)
-        # check for a matching color among pieces
+            piece.draw_for_picker(scale=0.8)
         color = color_at_point(WINDOW.mouse.x, WINDOW.mouse.y)
         for piece in self.pieces:
             if piece.matches_color(color):
@@ -117,7 +119,7 @@ class Board(object):
 
     def draw(self):
         # draw board and pieces
-        self._model.draw()
+        self.batch.draw()
         for piece in self.pieces:
             piece.draw(scale=0.8)
 

@@ -1,0 +1,22 @@
+# Blender MTL File: 'board.blend'
+# Material Count: 2
+
+newmtl Board_Surface
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.440787 0.484828 0.640000
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd grid.png
+
+newmtl Wood_Frame
+Ns 78.431373
+Ka 0.000000 0.000000 0.000000
+Kd 0.800000 0.370461 0.152049
+Ks 0.407801 0.285639 0.221974
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd darkwood1_0.jpg

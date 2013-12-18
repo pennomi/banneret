@@ -33,6 +33,7 @@ def on_mouse_press(x, y, button, modifiers):
 @WINDOW.event
 def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
     # Move cam when holding right and dragging
+    # TODO: it's glitchy when at the very extremes
     if pyglet.window.mouse.RIGHT & buttons:
         cam = WINDOW.camera
         cam.position = cam.position.rotate_around(Z_AXIS, -dx / 64.)
@@ -42,7 +43,7 @@ def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
 
 def main():
     WINDOW.camera.position = Vector3(8, 0, 4)
-    WINDOW.camera.looking_at = BOARD._model.position
+    WINDOW.camera.looking_at = BOARD.position
     pyglet.app.run()
 
 if __name__ == "__main__":

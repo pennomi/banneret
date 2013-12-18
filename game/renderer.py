@@ -60,15 +60,14 @@ class GameWindow(pyglet.window.Window):
         gl.glDepthFunc(gl.GL_LEQUAL)
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_CULL_FACE)
+        # update the camera
+        self.camera.look()
         # TODO: probably find a better place to enable and configure these
         # TODO TODO: Just use shader-based lighting anyway.
-        gl.glLoadIdentity()
         gl.glEnable(gl.GL_LIGHTING)
         gl.glEnable(gl.GL_LIGHT0)
         gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION,
-                     (gl.GLfloat * 4)(0, 5, 10, 1))
-        # update the camera
-        self.camera.look()
+                     (gl.GLfloat * 4)(0, 0, 100, 1))
 
     def enable_2d(self):
         gl.glMatrixMode(gl.GL_PROJECTION)
@@ -86,7 +85,6 @@ WINDOW = GameWindow(resizable=True)
 # Loading of 3d models
 ###############################################################################
 TEXTURE_CACHE = {}
-MODEL_CACHE = {}
 
 
 def _load_texture(filename):
@@ -97,61 +95,6 @@ def _load_texture(filename):
             'resources/textures/{}'.format(filename)).texture
         TEXTURE_CACHE[filename] = img.texture
         return TEXTURE_CACHE[filename]
-
-
-def _vlist_from_data(points):
-    return pyglet.graphics.vertex_list(len(points[0][1]) / 3, *points)
-
-
-def _load_model(filename):
-    try:
-        return MODEL_CACHE[filename]
-    except KeyError:
-        with open('resources/models/{}.pvl'.format(filename), 'rb') as infile:
-            data = pickle.loads(infile.read())
-        lists = {_load_texture(texture): _vlist_from_data(points)
-                 for texture, points in data.items()}
-        MODEL_CACHE[filename] = lists
-        return MODEL_CACHE[filename]
-
-
-class Model(object):
-    position = None
-    vertex_lists = None
-    angle = 0
-    pick_color = None  # for picking
-
-    def __init__(self, data_path, position=None):
-        if position is None:
-            position = Vector3(0, 0, 0)
-        self.vertex_lists = _load_model(data_path)  # models embed textures
-        self.position = position
-
-    def draw(self, scale=1):
-        gl.glPushMatrix()
-        gl.glTranslatef(*self.position)
-        gl.glRotatef(self.angle, 0, 0, 1)
-        gl.glScalef(scale, scale, scale)
-        for texture, vlist in self.vertex_lists.items():
-            gl.glBindTexture(gl.GL_TEXTURE_2D, texture.id)
-            vlist.draw(gl.GL_TRIANGLES)
-        gl.glPopMatrix()
-
-    def draw_for_picker(self, color, scale=1):
-        # disable stuff
-        gl.glDisable(gl.GL_TEXTURE_2D)
-        gl.glDisable(gl.GL_LIGHTING)
-        gl.glColor3f(*color)
-        gl.glPushMatrix()
-        gl.glTranslatef(*self.position)
-        gl.glRotatef(self.angle, 0, 0, 1)
-        gl.glScalef(scale, scale, scale)
-        for texture, vlist in self.vertex_lists.items():
-            vlist.draw(gl.GL_TRIANGLES)
-        gl.glPopMatrix()
-        # re-enable stuff
-        gl.glEnable(gl.GL_LIGHTING)
-        gl.glEnable(gl.GL_TEXTURE_2D)
 
 
 ###############################################################################
