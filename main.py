@@ -12,6 +12,7 @@ from game.board import BOARD
 
 Z_AXIS = Vector3(0, 0, 1)
 
+
 @WINDOW.event
 def on_draw():
     WINDOW.clear()

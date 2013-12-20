@@ -16,6 +16,11 @@ GREEN_HIGHLIGHT = (0.0, 0.7, 0.0, .75)
 RED_HIGHLIGHT = (0.7, 0.0, 0.0, .75)
 
 
+# TODO: Next objective should be getting things to load from skin files.
+def get_skin_path(filename):
+    return 'skins/boards/default/models/{}'.format(filename)
+
+
 class Player(object):
     name = ""
 
@@ -44,7 +49,7 @@ class Board(object):
 
         # misc setup
         self.position = Vector3(0, 0, -SURFACE_HEIGHT)
-        self._obj = OBJ('resources/models/board.obj')
+        self._obj = OBJ(get_skin_path('board.obj'))
         self.batch = Batch()
         self._obj.translate(*self.position)
         self._obj.add_to(self.batch)
