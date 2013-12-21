@@ -1,6 +1,6 @@
 # Blender v2.66 (sub 1) OBJ File: 'square_base.blend'
 # www.blender.org
-mtllib square.mtl
+mtllib O2.mtl
 o Cube
 v 0.449575 0.452617 0.052051
 v 0.452707 0.446607 0.209909

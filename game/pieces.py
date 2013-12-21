@@ -9,7 +9,6 @@ from pyglet import gl
 from pyglet.graphics import Batch
 from game.obj_batch import OBJ
 
-from game.renderer import _load_texture
 import game
 
 
@@ -88,7 +87,6 @@ class Piece(object):
     moved = False  # TODO: this probably is no longer necessary
     # rendering
     _model = None
-    _texture_override = ""
 
     def __init__(self, board, player, x, y, direction):
         self.board = weakref.proxy(board)
@@ -97,10 +95,12 @@ class Piece(object):
         self.position = Vector3(x - 3.5, y - 3.5, 0)
         # load the model
         # TODO: Cached loading
-        self._obj = OBJ('resources/models/square.obj')
+        # TODO: Per-player loading
+        model_filename = 'skins/pieces/default/models/player1/{}.obj'.format(
+            self.__class__.__name__)
+        self._obj = OBJ(model_filename)
         self.batch = Batch()
         self._obj.add_to(self.batch)
-        self.texture = _load_texture(self._texture_override)
         # set the rotation
         self.direction = direction
         self.old_direction = self.direction
@@ -122,7 +122,6 @@ class Piece(object):
         gl.glTranslatef(*self.position)
         gl.glRotatef(self.angle, 0, 0, 1)
         gl.glScalef(scale, scale, scale)
-        gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture.id)
         self.batch.draw()
         gl.glPopMatrix()
 
@@ -202,30 +201,35 @@ class Piece(object):
 ###############################################################################
 class B0(Piece):
     command_count = 1
-    _texture_override = "B0.jpg"
 
 
 class O1(Piece):
     speed = 1
     rotation_angle = 90
-    _texture_override = "O1.jpg"
 
 
 class O2(Piece):
     speed = 2
     rotation_angle = 90
-    _texture_override = "O2.jpg"
 
 
 class D1(Piece):
     speed = 1
     rotation_angle = 90
     rotation_offset = 45
-    _texture_override = "D1.jpg"
 
 
 class D2(Piece):
     speed = 2
     rotation_angle = 90
     rotation_offset = 45
-    _texture_override = "D2.jpg"
+
+
+class A1(Piece):
+    speed = 1
+    rotation_angle = 45
+
+
+class A2(Piece):
+    speed = 2
+    rotation_angle = 45

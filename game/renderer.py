@@ -1,5 +1,4 @@
 from __future__ import print_function
-import pickle
 import pyglet
 import sys
 from pyglet import gl
@@ -46,6 +45,7 @@ class GameWindow(pyglet.window.Window):
 
     def finish(self):
         """Calling this when done rendering helps prevent a bug on Ubuntu."""
+        # TODO: I heard disabling vsync does the trick w/o killing performance
         gl.glFinish()
 
     def on_mouse_motion(self, x, y, dx, dy):
@@ -79,22 +79,6 @@ class GameWindow(pyglet.window.Window):
         gl.glDisable(gl.GL_CULL_FACE)
         gl.glDisable(gl.GL_LIGHTING)
 WINDOW = GameWindow(resizable=True)
-
-
-###############################################################################
-# Loading of 3d models
-###############################################################################
-TEXTURE_CACHE = {}
-
-
-def _load_texture(filename):
-    try:
-        return TEXTURE_CACHE[filename]
-    except KeyError:
-        img = pyglet.image.load(
-            'resources/textures/{}'.format(filename)).texture
-        TEXTURE_CACHE[filename] = img.texture
-        return TEXTURE_CACHE[filename]
 
 
 ###############################################################################
