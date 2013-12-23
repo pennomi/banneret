@@ -98,7 +98,8 @@ class Piece(object):
         # TODO: Per-player loading
         model_filename = 'skins/pieces/default/models/player1/{}.obj'.format(
             self.__class__.__name__)
-        self._obj = OBJ(model_filename)
+        self._obj = OBJ(model_filename,
+                        texture_path='skins/pieces/default/textures/')
         self.batch = Batch()
         self._obj.add_to(self.batch)
         # set the rotation

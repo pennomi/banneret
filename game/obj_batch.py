@@ -80,7 +80,7 @@ class OBJ(object):
         loc = pyglet.resource.location(filename)
         return OBJ(filename, infile=loc.open(filename), path=loc.path)
 
-    def __init__(self, filename, infile=None, path=None):
+    def __init__(self, filename, infile=None, path=None, texture_path=None):
         self.materials = {}
         self.meshes = {}        # Name mapping
         self.mesh_list = []     # Also includes anonymous meshes
@@ -88,6 +88,7 @@ class OBJ(object):
         self.transforms = euclid.Matrix4.new_identity()
         self.normalize = False
 
+        self.texture_path = texture_path
         if infile is None:
             infile = open(filename, 'r')
 
@@ -264,8 +265,10 @@ class OBJ(object):
                     material.opacity = float(values[1])
                 elif values[0] == 'map_Kd':
                     try:
-                        material.texture = pyglet.resource.image(
-                            "resources/textures/{}".format(values[1])).texture
+                        tpath = "resources/textures/{}".format(values[1])
+                        if self.texture_path:
+                            tpath = "{}{}".format(self.texture_path, values[1])
+                        material.texture = pyglet.resource.image(tpath).texture
                     except BaseException as ex:
                         print('Could not load texture {}: {}'.format(
                             values[1], ex))
