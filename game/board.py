@@ -22,9 +22,10 @@ def get_skin_path(filename):
 
 
 class Player(object):
-    def __init__(self, name, team):
+    # TODO: maybe automatic assigning of teams?
+    def __init__(self, name, player_index):
         self.name = name
-        self.team = team
+        self.player_index = player_index
 
 
 class Board(object):

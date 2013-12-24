@@ -95,9 +95,8 @@ class Piece(object):
         self.position = Vector3(x - 3.5, y - 3.5, 0)
         # load the model
         # TODO: Cached loading
-        # TODO: Per-player loading
         model_filename = 'skins/pieces/default/models/player{}/{}.obj'.format(
-            self.player.team, self.__class__.__name__)
+            self.player.player_index, self.__class__.__name__)
         self._obj = OBJ(model_filename,
                         texture_path='skins/pieces/default/textures/')
         self.batch = Batch()
