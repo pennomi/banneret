@@ -22,10 +22,9 @@ def get_skin_path(filename):
 
 
 class Player(object):
-    name = ""
-
-    def __init__(self, name):
+    def __init__(self, name, team):
         self.name = name
+        self.team = team
 
 
 class Board(object):
@@ -37,8 +36,8 @@ class Board(object):
 
     def __init__(self):
         # set up players
-        player1 = Player('Thane')
-        player2 = Player('Stacey')
+        player1 = Player('Thane', 1)
+        player2 = Player('Stacey', 2)
         self.players = deque([player1, player2])
         self.active_player = self.players[0]
 

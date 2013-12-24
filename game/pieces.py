@@ -96,8 +96,8 @@ class Piece(object):
         # load the model
         # TODO: Cached loading
         # TODO: Per-player loading
-        model_filename = 'skins/pieces/default/models/player1/{}.obj'.format(
-            self.__class__.__name__)
+        model_filename = 'skins/pieces/default/models/player{}/{}.obj'.format(
+            self.player.team, self.__class__.__name__)
         self._obj = OBJ(model_filename,
                         texture_path='skins/pieces/default/textures/')
         self.batch = Batch()
