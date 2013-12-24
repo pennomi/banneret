@@ -1,11 +1,12 @@
 from __future__ import unicode_literals, print_function
+from weakref import proxy
 import pyglet
 from pyglet import gl
 from pyglet.graphics import Batch
 from game.obj_batch import OBJ
 from game.pieces import PieceList
 from euclid import Vector3
-from game.renderer import draw_highlight, color_at_point, TextButton, WINDOW
+from game.renderer import draw_highlight, color_at_point, TextButton
 from collections import deque
 
 SURFACE_HEIGHT = 0.36
@@ -31,11 +32,14 @@ class Player(object):
 class Board(object):
     """The global gameboard. You shouldn't ever instantiate this;
     Instead, just use the provided global BOARD object, below.
+    TODO: This isn't entirely accurate anymore. :/
     """
     width, height = 8, 8
     game_over = False
 
-    def __init__(self):
+    def __init__(self, window):
+        self.window = proxy(window)
+
         # set up players
         player1 = Player('Thane', 1)
         player2 = Player('Stacey', 2)
@@ -57,8 +61,8 @@ class Board(object):
 
         # TODO: Reposition and resize when the window resizes, perhaps make
         #       this % based instead of absolute?
-        position = (WINDOW.width - 50 - 100, 50, 100, 30)
-        self.end_turn_btn = TextButton(WINDOW, "End Turn", *position)
+        position = (self.window.width - 50 - 100, 50, 100, 30)
+        self.end_turn_btn = TextButton(self.window, "End Turn", *position)
         self.end_turn_btn.on_press = self.pass_turn
 
     def update(self, dt):
@@ -112,11 +116,11 @@ class Board(object):
         """Via a special rendering pass, find if the cursor is over any of the
         active pieces.
         """
-        WINDOW.enable_3d()
+        self.window.enable_3d()
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         for piece in self.pieces:
             piece.draw_for_picker(scale=0.8)
-        color = color_at_point(WINDOW.mouse.x, WINDOW.mouse.y)
+        color = color_at_point(self.window.mouse.x, self.window.mouse.y)
         for piece in self.pieces:
             if piece.matches_color(color):
                 return piece
@@ -144,10 +148,3 @@ class Board(object):
             rotated = my_pieces.filter(rotated=True)
             for piece in commanders.limit(rotate_limit - len(rotated)) + rotated:
                 draw_highlight(piece.square_center, GREEN_HIGHLIGHT)
-
-        # Draw the GUI
-        if not my_pieces.filter(moved=False):
-            WINDOW.enable_2d()
-            self.end_turn_btn.draw()
-
-BOARD = Board()

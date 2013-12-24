@@ -8,7 +8,7 @@ from euclid import Vector3
 ###############################################################################
 # Pyglet Window subclass
 ###############################################################################
-class GameWindow(pyglet.window.Window):
+class GameWindow3d(pyglet.window.Window):
     class Mouse(object):
         x, y = 0, 0
 
@@ -22,7 +22,7 @@ class GameWindow(pyglet.window.Window):
             data = list(self.position) + list(self.looking_at) + list(self.up)
             gl.gluLookAt(*data)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, StartingGameStateClass, *args, **kwargs):
         # update kwargs
         kwargs['config'] = gl.Config(
             sample_buffers=1,    # For antialiasing
@@ -31,7 +31,7 @@ class GameWindow(pyglet.window.Window):
             double_buffer=True,  # Render and swap
         )
         kwargs['resizable'] = True
-        super(GameWindow, self).__init__(*args, **kwargs)
+        super(GameWindow3d, self).__init__(*args, **kwargs)
 
         # init mouse and camera
         self.mouse = self.Mouse()
@@ -43,10 +43,22 @@ class GameWindow(pyglet.window.Window):
             pyglet.clock.schedule_interval(
                 lambda dt: print(pyglet.clock.get_fps()), 1)
 
-    def finish(self):
-        """Calling this when done rendering helps prevent a bug on Ubuntu."""
-        # TODO: I heard disabling vsync does the trick w/o killing performance
+        # set the starting game state
+        self.gamestate = StartingGameStateClass(self)
+
+    def on_draw(self):
+        self.clear()
+        self.enable_3d()
+        self.gamestate.draw_3d()
+        self.enable_2d()
+        self.gamestate.draw_2d()
         gl.glFinish()
+
+    def on_mouse_press(self, x, y, button, modifiers):
+        self.gamestate.on_mouse_press(x, y, button, modifiers)
+
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        self.gamestate.on_mouse_drag(x, y, dx, dy, buttons, modifiers)
 
     def on_mouse_motion(self, x, y, dx, dy):
         self.mouse.x, self.mouse.y = x, y
@@ -78,7 +90,6 @@ class GameWindow(pyglet.window.Window):
         gl.glDisable(gl.GL_DEPTH_TEST)
         gl.glDisable(gl.GL_CULL_FACE)
         gl.glDisable(gl.GL_LIGHTING)
-WINDOW = GameWindow(resizable=True)
 
 
 ###############################################################################
