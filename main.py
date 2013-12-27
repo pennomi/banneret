@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from __future__ import print_function
 import sys
+from euclid import Vector3
 import pyglet
 # TODO: Is there a better place to put this stuff?
 
@@ -8,9 +8,7 @@ if 'nogldebug' in sys.argv:
     pyglet.options['debug_gl'] = False
 
 from game.renderer import GameWindow3d
-from game.states import MainMenu, GameHUD
-
-from euclid import Vector3
+from game.states import MainMenu
 
 
 def main():
