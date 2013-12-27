@@ -1,4 +1,5 @@
 from __future__ import print_function
+from weakref import proxy
 import pyglet
 import sys
 from pyglet import gl
@@ -46,6 +47,10 @@ class GameWindow3d(pyglet.window.Window):
         # set the starting game state
         self.gamestate = StartingGameStateClass(self)
 
+    def set_state(self, NewStateClass, *args, **kwargs):
+        # TODO: this will handle the animation triggers, callbacks, etc.
+        self.gamestate = NewStateClass(self, *args, **kwargs)
+
     def on_draw(self):
         self.clear()
         self.enable_3d()
@@ -90,6 +95,26 @@ class GameWindow3d(pyglet.window.Window):
         gl.glDisable(gl.GL_DEPTH_TEST)
         gl.glDisable(gl.GL_CULL_FACE)
         gl.glDisable(gl.GL_LIGHTING)
+
+
+class BaseGameState(object):
+    def __init__(self, window):
+        self.window = proxy(window)
+        self.widgets = []
+        self.camera_look_at = Vector3(0, 0, 0)
+
+    def on_mouse_press(self, x, y, button, modifiers):
+        pass
+
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        pass
+
+    def draw_3d(self):
+        pass
+
+    def draw_2d(self):
+        for w in self.widgets:
+            w.draw()
 
 
 ###############################################################################
@@ -140,6 +165,7 @@ def draw_rect(x, y, width, height):
 class Control(pyglet.event.EventDispatcher):
     x = y = 0
     width = height = 10
+    hidden = False
 
     def __init__(self, parent, x, y, w, h):
         super(Control, self).__init__()
@@ -147,8 +173,7 @@ class Control(pyglet.event.EventDispatcher):
         self.parent = parent
 
     def hit_test(self, x, y):
-        return (self.x < x < self.x + self.w and
-                self.y < y < self.y + self.h)
+        return 0 < x - self.x < self.w and 0 < y - self.y < self.h
 
     def capture_events(self):
         self.parent.push_handlers(self)
@@ -165,7 +190,6 @@ class Button(Control):
         if self.charged:
             gl.glColor3f(1, 0, 0)
         draw_rect(self.x, self.y, self.w, self.h)
-        gl.glColor3f(0, 1, 1)
 
     def on_mouse_press(self, x, y, button, modifiers):
         self.capture_events()
@@ -193,6 +217,8 @@ class TextButton(Button):
         self._label.draw()
 
     def draw(self):
+        if self.hidden:
+            return
         super(TextButton, self).draw()
         self.draw_label()
 

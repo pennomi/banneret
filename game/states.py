@@ -1,38 +1,43 @@
 """The class that keeps track of what widgets to display on the screen and
 where to put them.
 """
-from _weakref import proxy
 from euclid import Vector3
 import pyglet
-from game.renderer import TextButton
+from game.renderer import TextButton, BaseGameState
+from game.board import Board
+
+BOARD = None
 
 
-# TODO: move this into renderer and subclass it into something Banneret-specific
-class GameState(object):
+class GameState(BaseGameState):
     def __init__(self, window):
-        self.window = proxy(window)
-        self.widgets = []
-        self.camera_look_at = Vector3(0, 0, 0)
+        super(GameState, self).__init__(window)
+        global BOARD
+        if not BOARD:
+            BOARD = Board(window)
+        self.board = BOARD
 
     def on_mouse_press(self, x, y, button, modifiers):
-        pass
-
-    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        pass
+        super(GameState, self).on_mouse_press(x, y, button, modifiers)
+        # TODO: can't this be built into button so it works automagically?
+        for control in self.widgets:
+            if control.hit_test(x, y):
+                control.on_mouse_press(x, y, button, modifiers)
 
     def draw_3d(self):
+        super(GameState, self).draw_3d()
         self.board.draw()
-
-    def draw_2d(self):
-        for w in self.widgets:
-            w.draw()
 
 
 class MainMenu(GameState):
     def __init__(self, window):
         super(MainMenu, self).__init__(window)
         self.start_button = TextButton(self.window, "Start Game", 0, 0, 100, 100)
+        self.start_button.on_press = self.new_game
         self.widgets.append(self.start_button)
+
+    def new_game(self):
+        self.window.set_state(GameHUD)
 
 
 class SettingsMenu(GameState):
@@ -40,13 +45,22 @@ class SettingsMenu(GameState):
 
 
 class GameHUD(GameState):
+    def __init__(self, window):
+        super(GameHUD, self).__init__(window)
+        #self.window.camera.looking_at = Vector3(0, 0, 0)
+
+        # TODO: Reposition and resize when the window resizes, perhaps make
+        #       this % based instead of absolute?
+        position = (self.window.width - 50 - 100, 50, 100, 30)
+        self.end_turn_btn = TextButton(self.window, "End Turn", *position)
+        self.end_turn_btn.on_press = self.board.pass_turn
+        self.widgets.append(self.end_turn_btn)
+
     # TODO: Scroll to zoom
     def on_mouse_press(self, x, y, button, modifiers):
+        super(GameHUD, self).on_mouse_press(x, y, button, modifiers)
         if button in [pyglet.window.mouse.LEFT]:
             self.board.click()
-        for control in [self.board.end_turn_btn]:
-            if control.hit_test(x, y):
-                control.on_mouse_press(x, y, button, modifiers)
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         z = Vector3(0, 0, 1)
@@ -59,8 +73,8 @@ class GameHUD(GameState):
             cam.position = cam.position.rotate_around(axis, dy / 64.)
 
     def draw_2d(self):
-        super(GameHUD, self).draw_2d()
+        # Update widget visibility
+        self.end_turn_btn.hidden = self.board.pieces.filter(
+            player=self.board.active_player, moved=False)
         # Draw the GUI
-        if not self.board.pieces.filter(player=self.board.active_player,
-                                        moved=False):
-            self.board.end_turn_btn.draw()
+        super(GameHUD, self).draw_2d()

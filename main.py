@@ -7,7 +7,6 @@ import pyglet
 if 'nogldebug' in sys.argv:
     pyglet.options['debug_gl'] = False
 
-from game.board import Board
 from game.renderer import GameWindow3d
 from game.states import MainMenu, GameHUD
 
@@ -15,11 +14,9 @@ from euclid import Vector3
 
 
 def main():
-    window = GameWindow3d(GameHUD, resizable=True)
-    board = Board(window)
-    window.gamestate.board = board
+    window = GameWindow3d(MainMenu, resizable=True)
     window.camera.position = Vector3(8, 0, 4)
-    window.camera.looking_at = board.position
+    window.camera.looking_at = window.gamestate.board.position
     pyglet.app.run()
 
 if __name__ == "__main__":

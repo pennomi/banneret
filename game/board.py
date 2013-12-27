@@ -1,12 +1,11 @@
 from __future__ import unicode_literals, print_function
 from weakref import proxy
 import pyglet
-from pyglet import gl
 from pyglet.graphics import Batch
 from game.obj_batch import OBJ
 from game.pieces import PieceList
 from euclid import Vector3
-from game.renderer import draw_highlight, color_at_point, TextButton
+from game.renderer import draw_highlight, color_at_point
 from collections import deque
 
 SURFACE_HEIGHT = 0.36
@@ -30,9 +29,8 @@ class Player(object):
 
 
 class Board(object):
-    """The global gameboard. You shouldn't ever instantiate this;
-    Instead, just use the provided global BOARD object, below.
-    TODO: This isn't entirely accurate anymore. :/
+    """The global gameboard. It's better to not instantiate new ones of these,
+    but rather just reuse it by clearing pieces and adding them anew.
     """
     width, height = 8, 8
     game_over = False
@@ -53,17 +51,11 @@ class Board(object):
 
         # misc setup
         self.position = Vector3(0, 0, -SURFACE_HEIGHT)
-        self._obj = OBJ(get_skin_path('board.obj'))
         self.batch = Batch()
+        self._obj = OBJ(get_skin_path('board.obj'))
         self._obj.translate(*self.position)
         self._obj.add_to(self.batch)
         pyglet.clock.schedule_interval(self.update, 1 / 60.)
-
-        # TODO: Reposition and resize when the window resizes, perhaps make
-        #       this % based instead of absolute?
-        position = (self.window.width - 50 - 100, 50, 100, 30)
-        self.end_turn_btn = TextButton(self.window, "End Turn", *position)
-        self.end_turn_btn.on_press = self.pass_turn
 
     def update(self, dt):
         self.selected_piece = self.get_selected_piece()
@@ -117,7 +109,7 @@ class Board(object):
         active pieces.
         """
         self.window.enable_3d()
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+        self.window.clear()
         for piece in self.pieces:
             piece.draw_for_picker(scale=0.8)
         color = color_at_point(self.window.mouse.x, self.window.mouse.y)
