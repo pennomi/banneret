@@ -1,0 +1,17 @@
+TextButton
+    id: start_game
+    x: 0
+    y: window.midleft.y + 30
+    w: 130
+    h: 30
+    text: Start Game
+    texture: button.png
+
+TextButton
+    id: exit
+    x: 0
+    y: window.midleft.y - 30
+    w: 130
+    h: 30
+    text: Exit to Desktop
+    texture: button.png

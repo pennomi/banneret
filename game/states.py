@@ -4,7 +4,8 @@ where to put them.
 from weakref import proxy
 from euclid import Vector3
 import pyglet
-from game.renderer import TextButton, BaseGameState
+from game.interface import TextButton
+from game.renderer import BaseGameState
 from game.board import Board
 
 BOARD = None
@@ -31,11 +32,11 @@ class GameState(BaseGameState):
 
 
 class MainMenuState(GameState):
+    """Handle the main menu state."""
     def __init__(self, window):
         super(MainMenuState, self).__init__(window)
-        start_button = TextButton(self.window, "Start Game", 0, 0, 100, 100)
-        start_button.on_press = lambda: self.window.set_state(PlayGameState)
-        self.controls["start_button"] = start_button
+        self.load_interface('main.interface')
+        self.controls["start_game"].on_press = lambda: self.window.set_state(PlayGameState)
 
 
 class PlayGameState(GameState):

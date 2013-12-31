@@ -4,6 +4,7 @@ import pyglet
 import sys
 from pyglet import gl
 from euclid import Vector3
+from game import interface
 
 
 ###############################################################################
@@ -99,11 +100,46 @@ class GameWindow3d(pyglet.window.Window):
         gl.glDisable(gl.GL_LIGHTING)
 
 
+CHARACTER_WHITELIST = set("0123456789 -+/*")
+
+
 class BaseGameState(object):
+    """Common, game-independent functionality for GameStates."""
     def __init__(self, window):
         self.window = proxy(window)
         self.controls = WeakValueDictionary()
         self.camera_look_at = Vector3(0, 0, 0)
+
+    def load_interface(self, filename):
+        # TODO: refactor this to be not... stupid. Probably should invoke
+        # parser helper functions contained in interface.py
+        filename = 'skins/interfaces/default/{}'.format(filename)
+        with open(filename, 'r') as infile:
+            data = infile.readlines()
+        current_control = None
+        for line in [_ for _ in data if _.strip() and not _.startswith('#')]:
+            if line.startswith('    ') or line.startswith('\t'):
+                key, value = line.split(':')
+                key, value = key.strip(), value.strip()
+                if key in ['x', 'y', 'w', 'h']:
+                    value = value.replace('window.midleft.y', str(
+                        self.window.height / 2))
+                    if len(set(value) - CHARACTER_WHITELIST):
+                        raise AttributeError(
+                            "Invalid characters specified in calculation for {}"
+                            "".format(key))
+                    setattr(current_control, key, eval(value))
+                elif key in ['text', 'texture']:
+                    setattr(current_control, key, value)
+                elif key == 'id':
+                    self.controls[value] = current_control
+                else:
+                    raise AttributeError(
+                        "Invalid key `{}` specified for interface element."
+                        "".format(key))
+            else:
+                ControlClass = getattr(interface, line.strip())
+                current_control = ControlClass(self.window)
 
     def on_mouse_press(self, x, y, button, modifiers):
         pass
@@ -151,82 +187,3 @@ def draw_highlight(xy, color):
     v.draw(gl.GL_QUADS)
     gl.glEnable(gl.GL_LIGHTING)
     gl.glEnable(gl.GL_TEXTURE_2D)
-
-
-###############################################################################
-# Button utils
-# Based on http://www.pyglet.org/doc/programming_guide/media_player.py
-# But seriously enhanced and fixed.
-###############################################################################
-def draw_rect(x, y, width, height):
-    gl.glBegin(gl.GL_QUADS)
-    gl.glVertex2f(x, y)
-    gl.glVertex2f(x + width, y)
-    gl.glVertex2f(x + width, y + height)
-    gl.glVertex2f(x, y + height)
-    gl.glEnd()
-
-
-class Control(pyglet.event.EventDispatcher):
-    x = y = 0
-    width = height = 10
-    hidden = False
-
-    def __init__(self, parent, x, y, w, h):
-        super(Control, self).__init__()
-        self.x, self.y, self.w, self.h = x, y, w, h
-        self.parent = parent
-        self.parent.push_handlers(self)
-
-    def hit_test(self, x, y):
-        return 0 < x - self.x < self.w and 0 < y - self.y < self.h
-
-    def cleanup(self):
-        self.parent.remove_handlers(self)
-
-
-class Button(Control):
-    charged = False
-
-    def draw(self):
-        gl.glColor3f(0, 1, 1)
-        if self.charged:
-            gl.glColor3f(1, 0, 0)
-        draw_rect(self.x, self.y, self.w, self.h)
-
-    def on_mouse_press(self, x, y, button, modifiers):
-        if self.hit_test(x, y):
-            self.charged = True
-
-    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        self.charged = self.hit_test(x, y)
-
-    def on_mouse_release(self, x, y, button, modifiers):
-        if self.hit_test(x, y):
-            self.dispatch_event('on_press')
-        self.charged = False
-Button.register_event_type('on_press')
-
-
-class TextButton(Button):
-    def __init__(self, parent, text, x, y, w, h):
-        super(TextButton, self).__init__(parent, x, y, w, h)
-        self._label = pyglet.text.Label(text, anchor_x='center', anchor_y='center')
-
-    def draw_label(self):
-        self._label.x = self.x + self.w / 2
-        self._label.y = self.y + self.h / 2
-        self._label.draw()
-
-    def draw(self):
-        if self.hidden:
-            return
-        super(TextButton, self).draw()
-        self.draw_label()
-
-    @property
-    def text(self):
-        return self._label.text
-    @text.setter
-    def text(self, text):
-        self._label.text = text
