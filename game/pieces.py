@@ -27,11 +27,7 @@ class PieceList(list):
         * rotated
         * command
     """
-    def filter(self,
-               player=None,
-               moved=None,
-               can_rotate=None,
-               rotated=None,
+    def filter(self, player=None, moved=None, can_rotate=None, rotated=None,
                command=None):
         """Filter this list by the specified attributes, then return another
         PieceList.
@@ -59,6 +55,9 @@ class PieceList(list):
                 sublist = [_ for _ in sublist if _.command_count <= 0]
 
         return PieceList(sublist)
+
+    def clear(self):
+        del self[:]
 
     def limit(self, n):
         return self[:n]

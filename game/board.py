@@ -46,7 +46,6 @@ class Board(object):
 
         # set up pieces
         self.pieces = PieceList()
-        self.pieces.load_from_file(self, 'default', self.players)
         self.selected_piece = None
 
         # misc setup
@@ -56,6 +55,14 @@ class Board(object):
         self._obj.translate(*self.position)
         self._obj.add_to(self.batch)
         pyglet.clock.schedule_interval(self.update, 1 / 60.)
+
+    def reset(self):
+        self.pieces.clear()
+        self.game_over = False
+
+    def load_state(self, statefilename):
+        self.reset()
+        self.pieces.load_from_file(self, statefilename, self.players)
 
     def update(self, dt):
         self.selected_piece = self.get_selected_piece()
@@ -69,7 +76,7 @@ class Board(object):
                     self.pieces.remove(piece)
         my_pieces = self.pieces.filter(player=self.active_player)
         if len(self.pieces) == len(my_pieces):
-            print("Player has emerged victorious!")
+            #print("Player has emerged victorious!")
             self.game_over = True
             # TODO: Some sort of dialog
 

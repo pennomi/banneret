@@ -1,5 +1,5 @@
 from __future__ import print_function
-from weakref import proxy
+from weakref import proxy, WeakValueDictionary
 import pyglet
 import sys
 from pyglet import gl
@@ -49,6 +49,8 @@ class GameWindow3d(pyglet.window.Window):
 
     def set_state(self, NewStateClass, *args, **kwargs):
         # TODO: this will handle the animation triggers, callbacks, etc.
+        for w in self.gamestate.controls.values():
+            w.cleanup()
         self.gamestate = NewStateClass(self, *args, **kwargs)
 
     def on_draw(self):
@@ -100,7 +102,7 @@ class GameWindow3d(pyglet.window.Window):
 class BaseGameState(object):
     def __init__(self, window):
         self.window = proxy(window)
-        self.widgets = []
+        self.controls = WeakValueDictionary()
         self.camera_look_at = Vector3(0, 0, 0)
 
     def on_mouse_press(self, x, y, button, modifiers):
@@ -113,8 +115,11 @@ class BaseGameState(object):
         pass
 
     def draw_2d(self):
-        for w in self.widgets:
+        for w in self.controls.values():
             w.draw()
+
+    def __del__(self):
+        print("__del__ Deleted old game state")
 
 
 ###############################################################################
@@ -171,14 +176,12 @@ class Control(pyglet.event.EventDispatcher):
         super(Control, self).__init__()
         self.x, self.y, self.w, self.h = x, y, w, h
         self.parent = parent
+        self.parent.push_handlers(self)
 
     def hit_test(self, x, y):
         return 0 < x - self.x < self.w and 0 < y - self.y < self.h
 
-    def capture_events(self):
-        self.parent.push_handlers(self)
-
-    def release_events(self):
+    def cleanup(self):
         self.parent.remove_handlers(self)
 
 
@@ -192,14 +195,13 @@ class Button(Control):
         draw_rect(self.x, self.y, self.w, self.h)
 
     def on_mouse_press(self, x, y, button, modifiers):
-        self.capture_events()
-        self.charged = True
+        if self.hit_test(x, y):
+            self.charged = True
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self.charged = self.hit_test(x, y)
 
     def on_mouse_release(self, x, y, button, modifiers):
-        self.release_events()
         if self.hit_test(x, y):
             self.dispatch_event('on_press')
         self.charged = False
