@@ -1,5 +1,5 @@
 from __future__ import print_function
-from weakref import proxy, WeakValueDictionary
+from weakref import proxy, WeakSet
 import pyglet
 import sys
 from pyglet import gl
@@ -50,8 +50,9 @@ class GameWindow3d(pyglet.window.Window):
 
     def set_state(self, NewStateClass, *args, **kwargs):
         # TODO: this will handle the animation triggers, callbacks, etc.
-        for w in self.gamestate.controls.values():
-            w.cleanup()
+        # clean up old handlers (so they don't stay in memory)
+        [w.cleanup() for w in self.gamestate.views]
+        self.remove_handlers(self.gamestate)
         self.gamestate = NewStateClass(self, *args, **kwargs)
 
     def on_draw(self):
@@ -62,13 +63,8 @@ class GameWindow3d(pyglet.window.Window):
         self.gamestate.draw_2d()
         gl.glFinish()
 
-    def on_mouse_press(self, x, y, button, modifiers):
-        self.gamestate.on_mouse_press(x, y, button, modifiers)
-
-    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        self.gamestate.on_mouse_drag(x, y, dx, dy, buttons, modifiers)
-
     def on_mouse_motion(self, x, y, dx, dy):
+        # TODO: I think this is redundant
         self.mouse.x, self.mouse.y = x, y
 
     def enable_3d(self):
@@ -103,55 +99,69 @@ class GameWindow3d(pyglet.window.Window):
 CHARACTER_WHITELIST = set("0123456789 -+/*")
 
 
+class WeakViewSet(WeakSet):
+    def __getattr__(self, item):
+        for i in self:
+            if i.id == item:
+                return i
+        raise AttributeError("Couldn't find view `{}`".format(item))
+
+
 class BaseGameState(object):
     """Common, game-independent functionality for GameStates."""
     def __init__(self, window):
         self.window = proxy(window)
-        self.controls = WeakValueDictionary()
+        self.window.push_handlers(self)
+        self.views = WeakViewSet()
         self.camera_look_at = Vector3(0, 0, 0)
 
     def load_interface(self, filename):
         # TODO: refactor this to be not... stupid. Probably should invoke
-        # parser helper functions contained in interface.py
+        # TODO: some parser helper functions contained in interface.py
         filename = 'skins/interfaces/default/{}'.format(filename)
         with open(filename, 'r') as infile:
             data = infile.readlines()
-        current_control = None
+
+        ViewClass = None
+        view_attrs = {}
+
         for line in [_ for _ in data if _.strip() and not _.startswith('#')]:
+            # if we're indented, it's an attribute.
             if line.startswith('    ') or line.startswith('\t'):
-                key, value = line.split(':')
-                key, value = key.strip(), value.strip()
+                key, value = [_.strip() for _ in line.split(':')]
                 if key in ['x', 'y', 'w', 'h']:
-                    value = value.replace('window.midleft.y', str(
-                        self.window.height / 2))
+                    value = value.replace('window.verticalcenter',
+                                          str(self.window.height / 2))
+                    value = value.replace('window.left', "0")
+                    value = value.replace('window.bottom', "0")
+                    value = value.replace('window.top', str(self.window.height))
+                    value = value.replace('window.right', str(self.window.width))
                     if len(set(value) - CHARACTER_WHITELIST):
-                        raise AttributeError(
-                            "Invalid characters specified in calculation for {}"
-                            "".format(key))
-                    setattr(current_control, key, eval(value))
-                elif key in ['text', 'texture']:
-                    setattr(current_control, key, value)
-                elif key == 'id':
-                    self.controls[value] = current_control
+                        raise AttributeError("Invalid characters specified in "
+                                             "calculation for {}".format(key))
+                    view_attrs[key] = eval(value)
+                elif key in ['text', 'image', 'id']:
+                    view_attrs[key] = value
                 else:
                     raise AttributeError(
                         "Invalid key `{}` specified for interface element."
                         "".format(key))
+            # if not indented, it's a view declaration
             else:
-                ControlClass = getattr(interface, line.strip())
-                current_control = ControlClass(self.window)
-
-    def on_mouse_press(self, x, y, button, modifiers):
-        pass
-
-    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        pass
+                if ViewClass is not None:
+                    # push the old view to the rendering queue
+                    self.views.add(ViewClass(window=self.window, **view_attrs))
+                # set up for the next
+                ViewClass = getattr(interface, line.strip())
+        if ViewClass is not None:
+            # push the final view to the rendering queue
+            self.views.add(ViewClass(window=self.window, **view_attrs))
 
     def draw_3d(self):
         pass
 
     def draw_2d(self):
-        for w in self.controls.values():
+        for w in self.views:
             w.draw()
 
     def __del__(self):

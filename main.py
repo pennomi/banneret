@@ -12,6 +12,7 @@ from game.states import MainMenuState
 
 
 def main():
+    """Run the game."""
     window = GameWindow3d(MainMenuState, resizable=True)
     # TODO: camera should be set in the state
     window.camera.position = Vector3(8, 0, 4)

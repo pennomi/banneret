@@ -1,0 +1,13 @@
+TextButton
+    id: main_menu
+    x: window.left
+    y: window.top - 30
+    text: Return to Main Menu
+    image: button.png
+
+TextButton
+    id: end_turn
+    x: 0
+    y: window.verticalcenter - 30
+    text: End Turn
+    image: button.png

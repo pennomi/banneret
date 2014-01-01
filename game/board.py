@@ -76,7 +76,6 @@ class Board(object):
                     self.pieces.remove(piece)
         my_pieces = self.pieces.filter(player=self.active_player)
         if len(self.pieces) == len(my_pieces):
-            #print("Player has emerged victorious!")
             self.game_over = True
             # TODO: Some sort of dialog
 
@@ -130,6 +129,9 @@ class Board(object):
         self.batch.draw()
         for piece in self.pieces:
             piece.draw(scale=0.8)
+
+        if self.game_over:
+            return
 
         # highlight the squares under the right pieces
         my_pieces = self.pieces.filter(player=self.active_player)
