@@ -51,7 +51,8 @@ class Board(object):
         # misc setup
         self.position = Vector3(0, 0, -SURFACE_HEIGHT)
         self.batch = Batch()
-        self._obj = OBJ(get_skin_path('board.obj'))
+        self._obj = OBJ(get_skin_path('board.obj'),
+                        texture_path='skins/boards/default/textures/')
         self._obj.translate(*self.position)
         self._obj.add_to(self.batch)
         pyglet.clock.schedule_interval(self.update, 1 / 60.)
