@@ -1,9 +1,3 @@
-#View
-#    id: test
-#    x: window.left
-#    y: window.verticalcenter + 60
-#    image: button.png
-
 TextButton
     id: start_game
     x: window.left
@@ -17,3 +11,9 @@ TextButton
     y: window.verticalcenter - 30
     text: Exit to Desktop
     image: button.png
+
+#View
+#    id: confirm_exit
+#    x: window.horizontalcenter - 64
+#    y: window.verticalcenter - 64
+#    image: button.png

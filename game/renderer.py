@@ -10,6 +10,9 @@ from game import interface
 ###############################################################################
 # Pyglet Window subclass
 ###############################################################################
+from game.interface import clean_value
+
+
 class GameWindow3d(pyglet.window.Window):
     class Mouse(object):
         x, y = 0, 0
@@ -96,9 +99,6 @@ class GameWindow3d(pyglet.window.Window):
         gl.glDisable(gl.GL_LIGHTING)
 
 
-CHARACTER_WHITELIST = set("0123456789 -+/*")
-
-
 class WeakViewSet(WeakSet):
     def __getattr__(self, item):
         for i in self:
@@ -130,15 +130,7 @@ class BaseGameState(object):
             if line.startswith('    ') or line.startswith('\t'):
                 key, value = [_.strip() for _ in line.split(':')]
                 if key in ['x', 'y', 'w', 'h']:
-                    value = value.replace('window.verticalcenter',
-                                          str(self.window.height / 2))
-                    value = value.replace('window.left', "0")
-                    value = value.replace('window.bottom', "0")
-                    value = value.replace('window.top', str(self.window.height))
-                    value = value.replace('window.right', str(self.window.width))
-                    if len(set(value) - CHARACTER_WHITELIST):
-                        raise AttributeError("Invalid characters specified in "
-                                             "calculation for {}".format(key))
+                    value = clean_value(value, self.window)
                     view_attrs[key] = eval(value)
                 elif key in ['text', 'image', 'id']:
                     view_attrs[key] = value

@@ -3,6 +3,20 @@ from pyglet import gl
 import pyglet
 from pyglet.sprite import Sprite
 
+CHARACTER_WHITELIST = set("0123456789 -+/*")
+
+
+def clean_value(v, window):
+    v = v.replace('window.verticalcenter', str(window.height / 2))
+    v = v.replace('window.horizontalcenter', str(window.height / 2))
+    v = v.replace('window.left', "0")
+    v = v.replace('window.bottom', "0")
+    v = v.replace('window.top', str(window.height))
+    v = v.replace('window.right', str(window.width))
+    if len(set(v) - CHARACTER_WHITELIST):
+        raise AttributeError("Invalid characters specified in calculation.")
+    return v
+
 
 def draw_rect(x, y, width, height):
     """A convenience function to draw the button rectangle."""

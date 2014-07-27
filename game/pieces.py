@@ -63,7 +63,7 @@ class PieceList(list):
         return self[:n]
 
     def load_from_file(self, board, filename, players):
-        path = 'resources/board_states/' + filename + '.board'
+        path = 'resources/' + filename + '.board'
         with open(path, 'r') as infile:
             data = json.load(infile)
         for piece in data:
